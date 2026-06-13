@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
@@ -11,6 +12,7 @@ import (
 
 type Application struct {
 	Config Config
+	db     *sql.DB
 }
 
 type Config struct {
@@ -30,7 +32,14 @@ func (app *Application) mount() http.Handler {
 	r.Use(middleware.Recoverer)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Server OK")
+		// test database health
+		err := app.db.Ping()
+		if err != nil {
+			http.Error(w, "Database connection error", http.StatusInternalServerError)
+			fmt.Fprintf(w, "%s", err)
+			return
+		}
+		fmt.Fprintln(w, "Server and Database OK")
 	})
 
 	return r

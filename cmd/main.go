@@ -6,6 +6,7 @@ import (
 )
 
 func main() {
+
 	dbConfig := DBConfig{
 		DSN: "root:rawbil@/go1?parseTime=true",
 	}
@@ -13,12 +14,23 @@ func main() {
 		Addr: ":8080",
 		DB:   dbConfig,
 	}
-	app := Application{
-		Config: config,
-	}
 
+	//slog
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
+
+	db, err := dbConnection(dbConfig)
+	if err != nil {
+		slog.Error("Database Connection failed", "error", err)
+		os.Exit(1)
+	}
+
+	defer db.Close()
+
+	app := Application{
+		Config: config,
+		db:     db,
+	}
 
 	m := app.mount()
 	if err := app.run(m); err != nil {
