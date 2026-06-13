@@ -31,15 +31,20 @@ func (app *Application) mount() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		// test database health
-		err := app.db.Ping()
-		if err != nil {
-			http.Error(w, "Database connection error", http.StatusInternalServerError)
-			fmt.Fprintf(w, "%s", err)
-			return
-		}
-		fmt.Fprintln(w, "Server and Database OK")
+	//* Root route
+	r.Route("/api/v1", func(r chi.Router) {
+
+		// health route GET /api/v1/health
+		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+			// test database health
+			err := app.db.Ping()
+			if err != nil {
+				http.Error(w, "Database connection error", http.StatusInternalServerError)
+				fmt.Fprintf(w, "%s", err)
+				return
+			}
+			fmt.Fprintln(w, "Server and Database OK")
+		})
 	})
 
 	return r
