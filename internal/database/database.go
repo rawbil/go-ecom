@@ -1,13 +1,14 @@
-package main
+package db
 
 import (
 	"database/sql"
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/rawbil/ecom2/internal/server"
 )
 
-func dbConnection(config DBConfig) (*sql.DB, error) {
+func DbConnection(config server.DBConfig) (*sql.DB, error) {
 	db, err := sql.Open("mysql", config.DSN)
 	if err != nil {
 		return nil, err

@@ -3,15 +3,30 @@ package main
 import (
 	"log/slog"
 	"os"
+
+	"github.com/go-sql-driver/mysql"
+	"github.com/rawbil/ecom2/internal/config"
+	db "github.com/rawbil/ecom2/internal/database"
+	"github.com/rawbil/ecom2/internal/server"
 )
 
 func main() {
 
-	dbConfig := DBConfig{
-		DSN: "root:rawbil@/go1?parseTime=true",
+	cfg := mysql.Config{
+		Addr:      config.InitConfig().DBAddress,
+		User:      config.InitConfig().DBUser,
+		Passwd:    config.InitConfig().DBPassword,
+		DBName:    config.InitConfig().DBName,
+		ParseTime: config.InitConfig().ParseTime,
+		AllowNativePasswords: true,
 	}
-	config := Config{
-		Addr: ":8080",
+
+	dbConfig := server.DBConfig{
+		DSN: cfg.FormatDSN(),
+	}
+
+	config := server.Config{
+		Addr: config.GetServerAddr(),
 		DB:   dbConfig,
 	}
 
@@ -19,7 +34,7 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	db, err := dbConnection(dbConfig)
+	db, err := db.DbConnection(dbConfig)
 	if err != nil {
 		slog.Error("Database Connection failed", "error", err)
 		os.Exit(1)
@@ -27,13 +42,13 @@ func main() {
 
 	defer db.Close()
 
-	app := Application{
+	app := server.Application{
 		Config: config,
-		db:     db,
+		DB:     db,
 	}
 
-	m := app.mount()
-	if err := app.run(m); err != nil {
+	m := app.Mount()
+	if err := app.Run(m); err != nil {
 		// log.Printf("Server failed: %s", err)
 		slog.Error("Server failed to start", "error", err)
 		os.Exit(1)
