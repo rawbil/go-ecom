@@ -13,11 +13,11 @@ import (
 func main() {
 
 	cfg := mysql.Config{
-		Addr:      config.InitConfig().DBAddress,
-		User:      config.InitConfig().DBUser,
-		Passwd:    config.InitConfig().DBPassword,
-		DBName:    config.InitConfig().DBName,
-		ParseTime: config.InitConfig().ParseTime,
+		Addr:                 config.InitConfig().DBAddress,
+		User:                 config.InitConfig().DBUser,
+		Passwd:               config.InitConfig().DBPassword,
+		DBName:               config.InitConfig().DBName,
+		ParseTime:            config.InitConfig().ParseTime,
 		AllowNativePasswords: true,
 	}
 
