@@ -1,0 +1,11 @@
+-- +goose Up
+CREATE TABLE IF NOT EXISTS users (
+	id BIGINT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+	username TEXT NOT NULL,
+	email TEXT NOT NULL UNIQUE,
+    password VARCHAR(20) NOT NULL,
+	created_at DATETIME NOT NULL DEFAULT NOW()
+);
+
+-- +goose Down
+DROP TABLE IF EXISTS users;

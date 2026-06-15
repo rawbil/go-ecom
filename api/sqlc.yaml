@@ -1,0 +1,9 @@
+version: "2"
+sql:
+  - engine: "mysql"
+    queries: "./internal/adapters/sqlc/query.sql"
+    schema: "./internal/adapters/migrations"
+    gen:
+      go:
+        package: "repository"
+        out: "./internal/adapters/sqlc"
