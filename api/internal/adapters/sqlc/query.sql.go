@@ -16,9 +16,9 @@ VALUES (?, ?, ?)
 `
 
 type CreateUserParams struct {
-	Username string
-	Email    string
-	Password string
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Result, error) {
@@ -26,20 +26,20 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Res
 }
 
 const deleteUser = `-- name: DeleteUser :exec
-DELETE FROM users WHERE id = ?
+DELETE FROM users WHERE email = ?
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteUser, id)
+func (q *Queries) DeleteUser(ctx context.Context, email string) error {
+	_, err := q.db.ExecContext(ctx, deleteUser, email)
 	return err
 }
 
 const listUser = `-- name: ListUser :one
-SELECT id, username, email, password, created_at FROM users WHERE id = ? LIMIT 1
+SELECT id, username, email, password, created_at FROM users WHERE email = ? LIMIT 1
 `
 
-func (q *Queries) ListUser(ctx context.Context, id int64) (User, error) {
-	row := q.db.QueryRowContext(ctx, listUser, id)
+func (q *Queries) ListUser(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, listUser, email)
 	var i User
 	err := row.Scan(
 		&i.ID,

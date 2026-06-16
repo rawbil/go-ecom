@@ -8,6 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
+	"github.com/rawbil/ecom2/internal/users"
 	"github.com/rawbil/ecom2/products"
 )
 
@@ -35,8 +37,23 @@ func (app *Application) Mount() http.Handler {
 	productsService := products.NewService()
 	productsHandler := products.NewHandler(productsService)
 
+	usersService := users.NewService(*repository.New(app.DB))
+	usersHandler := users.NewHandler(usersService)
+
 	//* Root route
 	r.Route("/api/v1", func(r chi.Router) {
+
+		// ! /api/v1/users
+		r.Route("/users", func(r chi.Router) {
+			//? GET /users/find-one
+			r.Get("/find-one", usersHandler.ListUser)
+			//? GET /users/find-all
+			r.Get("/find-all", usersHandler.ListAllUsers)
+			//? POST /users/create
+			r.Post("/create", usersHandler.CreateUser)
+			//?DELETE /users/delete
+			r.Delete("/delete", usersHandler.DeleteUser)
+		})
 
 		r.Get("/products", productsHandler.GetAllProducts)
 
