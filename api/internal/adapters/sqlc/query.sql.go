@@ -10,18 +10,49 @@ import (
 	"database/sql"
 )
 
+const createOrder = `-- name: CreateOrder :execresult
+INSERT INTO orders(user_id)
+VALUES (?)
+`
+
+func (q *Queries) CreateOrder(ctx context.Context, userID int64) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createOrder, userID)
+}
+
+const createOrderItem = `-- name: CreateOrderItem :execresult
+INSERT INTO order_items (order_id, product_id, quantity, total_price)
+VALUES (?, ?, ?, ?)
+`
+
+type CreateOrderItemParams struct {
+	OrderID    int64 `json:"order_id"`
+	ProductID  int64 `json:"product_id"`
+	Quantity   int32 `json:"quantity"`
+	TotalPrice int64 `json:"total_price"`
+}
+
+func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createOrderItem,
+		arg.OrderID,
+		arg.ProductID,
+		arg.Quantity,
+		arg.TotalPrice,
+	)
+}
+
 const createProduct = `-- name: CreateProduct :execresult
-INSERT INTO products (product_name, price)
-VALUES (?, ?)
+INSERT INTO products (product_name, price, quantity)
+VALUES (?, ?, ?)
 `
 
 type CreateProductParams struct {
 	ProductName string `json:"product_name"`
 	Price       int64  `json:"price"`
+	Quantity    int32  `json:"quantity"`
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, createProduct, arg.ProductName, arg.Price)
+	return q.db.ExecContext(ctx, createProduct, arg.ProductName, arg.Price, arg.Quantity)
 }
 
 const createUser = `-- name: CreateUser :execresult
@@ -58,8 +89,102 @@ func (q *Queries) DeleteUser(ctx context.Context, email string) error {
 	return err
 }
 
+const listOrder = `-- name: ListOrder :one
+SELECT order_id, user_id, created_at FROM orders
+WHERE order_id = ?
+`
+
+func (q *Queries) ListOrder(ctx context.Context, orderID int64) (Order, error) {
+	row := q.db.QueryRowContext(ctx, listOrder, orderID)
+	var i Order
+	err := row.Scan(&i.OrderID, &i.UserID, &i.CreatedAt)
+	return i, err
+}
+
+const listOrderItem = `-- name: ListOrderItem :one
+SELECT id, order_id, product_id, total_price, quantity, created_at FROM order_items
+WHERE id = ?
+`
+
+func (q *Queries) ListOrderItem(ctx context.Context, id int64) (OrderItem, error) {
+	row := q.db.QueryRowContext(ctx, listOrderItem, id)
+	var i OrderItem
+	err := row.Scan(
+		&i.ID,
+		&i.OrderID,
+		&i.ProductID,
+		&i.TotalPrice,
+		&i.Quantity,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const listOrderItems = `-- name: ListOrderItems :many
+SELECT id, order_id, product_id, total_price, quantity, created_at FROM order_items
+ORDER BY created_at DESC
+`
+
+func (q *Queries) ListOrderItems(ctx context.Context) ([]OrderItem, error) {
+	rows, err := q.db.QueryContext(ctx, listOrderItems)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []OrderItem
+	for rows.Next() {
+		var i OrderItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.ProductID,
+			&i.TotalPrice,
+			&i.Quantity,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOrders = `-- name: ListOrders :many
+SELECT order_id, user_id, created_at FROM orders
+ORDER BY created_at DESC
+`
+
+func (q *Queries) ListOrders(ctx context.Context) ([]Order, error) {
+	rows, err := q.db.QueryContext(ctx, listOrders)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Order
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(&i.OrderID, &i.UserID, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProduct = `-- name: ListProduct :one
-SELECT product_id, product_name, price, created_at, updated_at FROM products WHERE product_id = ? LIMIT 1
+SELECT product_id, product_name, price, created_at, updated_at, quantity FROM products WHERE product_id = ? LIMIT 1
 `
 
 func (q *Queries) ListProduct(ctx context.Context, productID int64) (Product, error) {
@@ -71,12 +196,13 @@ func (q *Queries) ListProduct(ctx context.Context, productID int64) (Product, er
 		&i.Price,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Quantity,
 	)
 	return i, err
 }
 
 const listProducts = `-- name: ListProducts :many
-SELECT product_id, product_name, price, created_at, updated_at FROM products 
+SELECT product_id, product_name, price, created_at, updated_at, quantity FROM products 
 ORDER BY updated_at
 `
 
@@ -95,6 +221,7 @@ func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 			&i.Price,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Quantity,
 		); err != nil {
 			return nil, err
 		}

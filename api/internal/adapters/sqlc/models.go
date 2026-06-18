@@ -8,12 +8,28 @@ import (
 	"time"
 )
 
+type Order struct {
+	OrderID   int64     `json:"order_id"`
+	UserID    int64     `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type OrderItem struct {
+	ID         int64     `json:"id"`
+	OrderID    int64     `json:"order_id"`
+	ProductID  int64     `json:"product_id"`
+	TotalPrice int64     `json:"total_price"`
+	Quantity   int32     `json:"quantity"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
 type Product struct {
 	ProductID   int64     `json:"product_id"`
 	ProductName string    `json:"product_name"`
 	Price       int64     `json:"price"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+	Quantity    int32     `json:"quantity"`
 }
 
 type User struct {

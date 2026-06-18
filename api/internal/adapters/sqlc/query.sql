@@ -14,8 +14,8 @@ VALUES (?, ?, ?);
 DELETE FROM users WHERE email = ?;
 
 -- name: CreateProduct :execresult
-INSERT INTO products (product_name, price)
-VALUES (?, ?);
+INSERT INTO products (product_name, price, quantity)
+VALUES (?, ?, ?);
 
 -- name: ListProduct :one
 SELECT * FROM products WHERE product_id = ? LIMIT 1;
@@ -27,3 +27,27 @@ ORDER BY updated_at;
 -- name: DeleteProduct :exec
 DELETE FROM products
 WHERE product_id = ?;
+
+-- name: CreateOrder :execresult
+INSERT INTO orders(user_id)
+VALUES (?);
+
+-- name: CreateOrderItem :execresult
+INSERT INTO order_items (order_id, product_id, quantity, total_price)
+VALUES (?, ?, ?, ?);
+
+-- name: ListOrders :many
+SELECT * FROM orders
+ORDER BY created_at DESC;
+
+-- name: ListOrderItems :many
+SELECT * FROM order_items
+ORDER BY created_at DESC;
+
+-- name: ListOrder :one
+SELECT * FROM orders
+WHERE order_id = ?;
+
+-- name: ListOrderItem :one
+SELECT * FROM order_items
+WHERE id = ?;
