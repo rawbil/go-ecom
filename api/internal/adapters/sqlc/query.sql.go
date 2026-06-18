@@ -10,6 +10,20 @@ import (
 	"database/sql"
 )
 
+const createProduct = `-- name: CreateProduct :execresult
+INSERT INTO products (product_name, price)
+VALUES (?, ?)
+`
+
+type CreateProductParams struct {
+	ProductName string `json:"product_name"`
+	Price       int64  `json:"price"`
+}
+
+func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createProduct, arg.ProductName, arg.Price)
+}
+
 const createUser = `-- name: CreateUser :execresult
 INSERT INTO users (username, email, password)
 VALUES (?, ?, ?)
@@ -25,6 +39,16 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Res
 	return q.db.ExecContext(ctx, createUser, arg.Username, arg.Email, arg.Password)
 }
 
+const deleteProduct = `-- name: DeleteProduct :exec
+DELETE FROM products
+WHERE product_id = ?
+`
+
+func (q *Queries) DeleteProduct(ctx context.Context, productID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteProduct, productID)
+	return err
+}
+
 const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM users WHERE email = ?
 `
@@ -32,6 +56,57 @@ DELETE FROM users WHERE email = ?
 func (q *Queries) DeleteUser(ctx context.Context, email string) error {
 	_, err := q.db.ExecContext(ctx, deleteUser, email)
 	return err
+}
+
+const listProduct = `-- name: ListProduct :one
+SELECT product_id, product_name, price, created_at, updated_at FROM products WHERE product_id = ? LIMIT 1
+`
+
+func (q *Queries) ListProduct(ctx context.Context, productID int64) (Product, error) {
+	row := q.db.QueryRowContext(ctx, listProduct, productID)
+	var i Product
+	err := row.Scan(
+		&i.ProductID,
+		&i.ProductName,
+		&i.Price,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listProducts = `-- name: ListProducts :many
+SELECT product_id, product_name, price, created_at, updated_at FROM products 
+ORDER BY updated_at
+`
+
+func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
+	rows, err := q.db.QueryContext(ctx, listProducts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Product
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ProductID,
+			&i.ProductName,
+			&i.Price,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listUser = `-- name: ListUser :one

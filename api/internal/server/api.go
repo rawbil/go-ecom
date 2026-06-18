@@ -3,14 +3,16 @@ package server
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
+	"github.com/rawbil/ecom2/internal/products"
 	"github.com/rawbil/ecom2/internal/users"
-	"github.com/rawbil/ecom2/products"
 )
 
 type Application struct {
@@ -34,7 +36,7 @@ func (app *Application) Mount() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	productsService := products.NewService()
+	productsService := products.NewService(*repository.New(app.DB))
 	productsHandler := products.NewHandler(productsService)
 
 	usersService := users.NewService(*repository.New(app.DB))
@@ -55,7 +57,17 @@ func (app *Application) Mount() http.Handler {
 			r.Delete("/delete", usersHandler.DeleteUser)
 		})
 
-		r.Get("/products", productsHandler.GetAllProducts)
+		// ! /api/v1/products
+		r.Route("/products", func(r chi.Router) {
+			//? GET /products/list
+			r.Get("/list", productsHandler.ListProducts)
+			//? GET /products/one
+			r.Get("/one", productsHandler.ListProduct)
+			//? POST /products
+			r.Post("/", productsHandler.CreateProduct)
+			//? DELETE /products
+			r.Delete("/", productsHandler.DeleteProduct)
+		})
 
 		// health route GET /api/v1/health
 		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -75,6 +87,8 @@ func (app *Application) Mount() http.Handler {
 
 // run
 func (app *Application) Run(m http.Handler) error {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
 	srv := &http.Server{
 		Addr:         app.Config.Addr,
 		Handler:      m,
@@ -84,7 +98,8 @@ func (app *Application) Run(m http.Handler) error {
 	}
 
 	if app.Config.Addr != "" {
-		fmt.Printf("Server is running on http://localhost%s", app.Config.Addr)
+		message := fmt.Sprintf("Server is running on http://localhost%s", app.Config.Addr)
+		slog.Info(message, "Status", http.StatusOK)
 	}
 
 	return srv.ListenAndServe()
