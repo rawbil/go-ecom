@@ -20,7 +20,7 @@ type Svc struct {
 
 var (
 	NotFoundError  = errors.New("Product Not Found")
-	ProductNoStock = errors.New("No Stock Available")
+	ProductNoStock = errors.New("The quantity selected is more than the stock available")
 )
 
 func NewService(repository repository.Queries, db *sql.DB) Service {
@@ -35,7 +35,7 @@ func (svc *Svc) CreateOrder(ctx context.Context, params CreateOrderParams) (resu
 		return repository.Order{}, fmt.Errorf("User id not found")
 	}
 
-	if len(params.items) < 1 {
+	if len(params.Items) < 1 {
 		return repository.Order{}, fmt.Errorf("No order items found")
 	}
 
@@ -60,7 +60,7 @@ func (svc *Svc) CreateOrder(ctx context.Context, params CreateOrderParams) (resu
 	}
 
 	// ensure the products exist
-	for _, item := range params.items {
+	for _, item := range params.Items {
 		product, err := qtx.ListProduct(ctx, item.ProductId)
 		if err != nil {
 			return repository.Order{}, NotFoundError
@@ -81,6 +81,19 @@ func (svc *Svc) CreateOrder(ctx context.Context, params CreateOrderParams) (resu
 		if err != nil {
 			return repository.Order{}, err
 		}
+
+		// reduce the quantity of the product
+
+		updated_qty := product.Quantity - item.Quantity
+		fmt.Println(updated_qty)
+
+		if _, err = qtx.UpdateProductQuantity(ctx, repository.UpdateProductQuantityParams{
+			Quantity:  updated_qty,
+			ProductID: product.ProductID,
+		}); err != nil {
+			return repository.Order{}, err
+		}
+
 	}
 
 	createdOrder, err := qtx.ListOrder(ctx, orderId)
@@ -88,12 +101,9 @@ func (svc *Svc) CreateOrder(ctx context.Context, params CreateOrderParams) (resu
 		return repository.Order{}, err
 	}
 
-	// reduce the quantity of the product
-
-
 	// Commit the transaction
 	if err := tx.Commit(); err != nil {
-		return repository.Order{}, err 
+		return repository.Order{}, err
 	}
 
 	return createdOrder, nil

@@ -286,3 +286,18 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	}
 	return items, nil
 }
+
+const updateProductQuantity = `-- name: UpdateProductQuantity :execresult
+UPDATE products
+SET quantity = ?
+WHERE product_id = ?
+`
+
+type UpdateProductQuantityParams struct {
+	Quantity  int32 `json:"quantity"`
+	ProductID int64 `json:"product_id"`
+}
+
+func (q *Queries) UpdateProductQuantity(ctx context.Context, arg UpdateProductQuantityParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateProductQuantity, arg.Quantity, arg.ProductID)
+}

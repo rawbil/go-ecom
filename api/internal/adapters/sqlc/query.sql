@@ -28,6 +28,11 @@ ORDER BY updated_at;
 DELETE FROM products
 WHERE product_id = ?;
 
+-- name: UpdateProductQuantity :execresult
+UPDATE products
+SET quantity = ?
+WHERE product_id = ?;
+
 -- name: CreateOrder :execresult
 INSERT INTO orders(user_id)
 VALUES (?);
