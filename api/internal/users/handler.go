@@ -67,7 +67,7 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	utils.JsonResponse(w, Response{"User Created Successfully!"})
 }
 
-//! DELETE User
+// ! DELETE User
 func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	type Body struct {
 		Email string
