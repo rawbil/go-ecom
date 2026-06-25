@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/go-playground/validator/v10"
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
 )
@@ -13,7 +12,7 @@ import (
 type Service interface {
 	UserRegister(ctx context.Context, arg repository.CreateUserParams) (sql.Result, error)
 
-	// UserLogin()
+	UserLogin(ctx context.Context, arg authutils.UserLoginParams) (repository.User, error)
 	// UserLogout()
 }
 
@@ -28,26 +27,29 @@ func NewService(repository repository.Queries) Service {
 }
 
 var (
-	FieldsRequiredError  = errors.New("All fields are required")
-	InvalidPasswordError = errors.New("Password should have a minimum of 8 characters, have at least 1 uppercase, lowecase letter and special character")
-	InvalidEmailError    = errors.New("Invalid email format")
-	UserExistsError      = errors.New("User already exists")
-	SqlNoRows            = errors.New("No record available")
+	FieldsRequiredError   = errors.New("All fields are required")
+	InvalidPasswordError  = errors.New("Password should have a minimum of 8 characters, have at least 1 uppercase, lowecase letter and special character")
+	InvalidEmailError     = errors.New("Invalid email format")
+	UserExistsError       = errors.New("User already exists")
+	SqlNoRows             = errors.New("No record available")
+	UserNotFoundError     = errors.New("User Not Found")
+	PasswordMismatchError = errors.New("Invalid Password")
 )
 
+// ! REGISTER
 func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserParams) (sql.Result, error) {
 	//& Validate fields
 	if err := authutils.UserRegisterValidation(params); err != nil {
 		// empty fields
-		if ValidationErrorCheck("required", err) {
+		if authutils.ValidationErrorCheck("required", err) {
 			return nil, FieldsRequiredError
 		}
 		// password error
-		if ValidationErrorCheck("password_format", err) || ValidationErrorCheck("min", err) {
+		if authutils.ValidationErrorCheck("password_format", err) || authutils.ValidationErrorCheck("min", err) {
 			return nil, InvalidPasswordError
 		}
 		// email error
-		if ValidationErrorCheck("email", err) {
+		if authutils.ValidationErrorCheck("email", err) {
 			return nil, InvalidEmailError
 		}
 		return nil, err
@@ -74,17 +76,33 @@ func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserPa
 	return svc.repository.CreateUser(ctx, params)
 }
 
-func ValidationErrorCheck(tag string, err error) bool {
-	var validationErrors validator.ValidationErrors
-	if !errors.As(err, &validationErrors) {
-		return false
-	}
-
-	for _, ValidationError := range validationErrors {
-		if ValidationError.Tag() == tag {
-			return true
+// ! LOGIN
+func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (repository.User, error) {
+	//& validate fields
+	if err := authutils.UserLoginValidation(arg); err != nil {
+		if authutils.ValidationErrorCheck("required", err) {
+			return repository.User{}, FieldsRequiredError
 		}
+
+		if authutils.ValidationErrorCheck("email", err) {
+			return repository.User{}, InvalidEmailError
+		}
+
+		return repository.User{}, err
 	}
 
-	return false
+	//& Find User
+	user, err := svc.repository.ListUser(ctx, arg.Email)
+	if err != nil {
+		return repository.User{}, UserNotFoundError
+	}
+
+	//& Compare password with stored hashed password
+	if err := authutils.ComparePasswords(arg.Password, user.Password); err != nil {
+		return repository.User{}, PasswordMismatchError
+	}
+
+	// & Generate authentication token
+
+	return user, nil
 }

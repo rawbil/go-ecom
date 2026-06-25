@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type Config struct {
@@ -12,6 +13,11 @@ type Config struct {
 	DBAddress  string
 	DBName     string
 	ParseTime  bool
+}
+
+type JwtConfig struct {
+	JwtSecret string
+	JwtExpire int
 }
 
 func InitConfig() Config {
@@ -29,10 +35,28 @@ func GetServerAddr() string {
 	return getEnv("SERVER_ADDR", ":8080")
 }
 
+func GetJwtConfig() *JwtConfig {
+	return &JwtConfig{
+		JwtSecret: getEnv("JWT_SECRET", "myverysecretkE4"),
+		JwtExpire: int(getIntEnv("JWT_EXPIRE", 3600)),
+	}
+}
+
 // If ok is false, return fallback
 func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
+	}
+	return fallback
+}
+
+func getIntEnv(key string, fallback int64) int64 {
+	if value, ok := os.LookupEnv(key); ok {
+		i, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return fallback
+		}
+		return i
 	}
 	return fallback
 }

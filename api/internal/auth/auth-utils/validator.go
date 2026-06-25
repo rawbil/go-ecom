@@ -1,6 +1,7 @@
 package authutils
 
 import (
+	"errors"
 	"regexp"
 
 	"github.com/go-playground/validator/v10"
@@ -34,4 +35,23 @@ func UserRegisterValidation(args repository.CreateUserParams) error {
 		Email:    args.Email,
 		Password: args.Password,
 	})
+}
+
+func UserLoginValidation(arg UserLoginParams) error {
+	return validate.Struct(arg)
+}
+
+func ValidationErrorCheck(tag string, err error) bool {
+	var validationErrors validator.ValidationErrors
+	if !errors.As(err, &validationErrors) {
+		return false
+	}
+
+	for _, ValidationError := range validationErrors {
+		if ValidationError.Tag() == tag {
+			return true
+		}
+	}
+
+	return false
 }
