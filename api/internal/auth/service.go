@@ -31,17 +31,19 @@ var (
 	FieldsRequiredError  = errors.New("All fields are required")
 	InvalidPasswordError = errors.New("Password should have a minimum of 8 characters, have at least 1 uppercase, lowecase letter and special character")
 	InvalidEmailError    = errors.New("Invalid email format")
+	UserExistsError      = errors.New("User already exists")
+	SqlNoRows            = errors.New("No record available")
 )
 
 func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserParams) (sql.Result, error) {
-	// Validate fields
+	//& Validate fields
 	if err := utils.UserRegisterValidation(params); err != nil {
 		// empty fields
 		if ValidationErrorCheck("required", err) {
 			return nil, FieldsRequiredError
 		}
 		// password error
-		if ValidationErrorCheck("password_format", err) {
+		if ValidationErrorCheck("password_format", err) || ValidationErrorCheck("min", err) {
 			return nil, InvalidPasswordError
 		}
 		// email error
@@ -50,6 +52,24 @@ func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserPa
 		}
 		return nil, err
 	}
+
+	//& Ensure user does not exist before registering
+	_, err := svc.repository.ListUser(ctx, params.Email)
+	if err == nil {
+		return nil, UserExistsError
+	}
+
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, UserExistsError
+	}
+
+	//& Hash Password
+	 hashedPassword, err := utils.PasswordHash(params.Password)
+	 if err != nil {
+		return nil, err
+	}
+
+	params.Password = hashedPassword
 
 	return svc.repository.CreateUser(ctx, params)
 }
