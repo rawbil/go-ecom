@@ -57,6 +57,8 @@ func (app *Application) Mount() http.Handler {
 		r.Route("/auth", func(r chi.Router) {
 			//?POST /auth/register
 			r.Post("/register", authHandler.UserRegister)
+			//? POST /auth/login
+			r.Post("/login", authHandler.UserLogin)
 		})
 
 		// ! /api/v1/users
