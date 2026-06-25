@@ -36,7 +36,7 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		if err == NotFoundError {
 			http.Error(w, NotFoundError.Error(), http.StatusNotFound)
 		}
-		utils.ErrorHandler(err, w)
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 		return
 	}
 	utils.JsonResponse(w, createdOrder)

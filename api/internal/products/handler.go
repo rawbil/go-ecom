@@ -27,7 +27,7 @@ func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.service.CreateProduct(r.Context(), params)
 	if err != nil {
-		utils.ErrorHandler(err, w)
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 		return
 	}
 
@@ -44,7 +44,7 @@ func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	products, err := h.service.ListProducts(r.Context())
 	if err != nil {
-		utils.ErrorHandler(err, w)
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 		return
 	}
 
@@ -66,7 +66,7 @@ func (h *Handler) ListProduct(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&body)
 	product, err := h.service.ListProduct(r.Context(), body.ID)
 	if err != nil {
-		utils.ErrorHandler(err, w)
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 		return
 	}
 
@@ -82,7 +82,7 @@ func (h *Handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&body)
 	err := h.service.DeleteProduct(r.Context(), body.ID)
 	if err != nil {
-		utils.ErrorHandler(err, w)
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 		return
 	}
 

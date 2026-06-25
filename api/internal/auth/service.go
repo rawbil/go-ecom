@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
-	"github.com/rawbil/ecom2/internal/auth/utils"
+	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
 )
 
 type Service interface {
@@ -37,7 +37,7 @@ var (
 
 func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserParams) (sql.Result, error) {
 	//& Validate fields
-	if err := utils.UserRegisterValidation(params); err != nil {
+	if err := authutils.UserRegisterValidation(params); err != nil {
 		// empty fields
 		if ValidationErrorCheck("required", err) {
 			return nil, FieldsRequiredError
@@ -64,8 +64,8 @@ func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserPa
 	}
 
 	//& Hash Password
-	 hashedPassword, err := utils.PasswordHash(params.Password)
-	 if err != nil {
+	hashedPassword, err := authutils.PasswordHash(params.Password)
+	if err != nil {
 		return nil, err
 	}
 

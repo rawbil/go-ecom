@@ -26,7 +26,7 @@ func NewHandler(service Service) *Handler {
 func (h *Handler) ListAllUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := h.service.ListAllUsers(r.Context())
 	if err != nil {
-		utils.ErrorHandler(err, w)
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 		return
 	}
 
@@ -44,7 +44,7 @@ func (h *Handler) ListUser(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&body)
 	user, err := h.service.ListUser(r.Context(), body.Email)
 	if err != nil {
-		utils.ErrorHandler(err, w)
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 		return
 	}
 
@@ -61,7 +61,7 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	json.NewDecoder(r.Body).Decode(&params)
 	if _, err := h.service.CreateUser(r.Context(), params); err != nil {
-		utils.ErrorHandler(err, w)
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 	}
 
 	utils.JsonResponse(w, Response{"User Created Successfully!"})
@@ -78,6 +78,6 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	err := h.service.DeleteUser(r.Context(), body.Email)
 	if err != nil {
-		utils.ErrorHandler(err, w)
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 	}
 }

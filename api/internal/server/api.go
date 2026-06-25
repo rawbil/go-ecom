@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
+	"github.com/rawbil/ecom2/internal/auth"
 	"github.com/rawbil/ecom2/internal/orders"
 	"github.com/rawbil/ecom2/internal/products"
 	"github.com/rawbil/ecom2/internal/users"
@@ -37,6 +38,9 @@ func (app *Application) Mount() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	authService := auth.NewService(*repository.New(app.DB))
+	authHandler := auth.NewHandler(authService)
+
 	productsService := products.NewService(*repository.New(app.DB))
 	productsHandler := products.NewHandler(productsService)
 
@@ -48,6 +52,12 @@ func (app *Application) Mount() http.Handler {
 
 	//* Root route
 	r.Route("/api/v1", func(r chi.Router) {
+
+		// ! /api/v1/auth
+		r.Route("/auth", func(r chi.Router) {
+			//?POST /auth/register
+			r.Post("/register", authHandler.UserRegister)
+		})
 
 		// ! /api/v1/users
 		r.Route("/users", func(r chi.Router) {

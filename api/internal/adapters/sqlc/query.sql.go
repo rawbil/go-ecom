@@ -237,7 +237,7 @@ func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 }
 
 const listUser = `-- name: ListUser :one
-SELECT id, username, email, password, created_at FROM users WHERE email = ? LIMIT 1
+SELECT id, username, email, created_at, password FROM users WHERE email = ? LIMIT 1
 `
 
 func (q *Queries) ListUser(ctx context.Context, email string) (User, error) {
@@ -247,14 +247,14 @@ func (q *Queries) ListUser(ctx context.Context, email string) (User, error) {
 		&i.ID,
 		&i.Username,
 		&i.Email,
-		&i.Password,
 		&i.CreatedAt,
+		&i.Password,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, username, email, password, created_at FROM users
+SELECT id, username, email, created_at, password FROM users
 ORDER BY created_at
 `
 
@@ -271,8 +271,8 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.ID,
 			&i.Username,
 			&i.Email,
-			&i.Password,
 			&i.CreatedAt,
+			&i.Password,
 		); err != nil {
 			return nil, err
 		}

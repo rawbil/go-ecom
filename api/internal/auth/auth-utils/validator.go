@@ -1,4 +1,4 @@
-package utils
+package authutils
 
 import (
 	"regexp"
@@ -18,7 +18,7 @@ func NewValidator() *validator.Validate {
 var (
 	hasUpper       = regexp.MustCompile(`[A-Z]`)
 	hasLower       = regexp.MustCompile(`[a-z]`)
-	hasSpecialChar = regexp.MustCompile(`^[A-Za-z0-9]`)
+	hasSpecialChar = regexp.MustCompile(`[^A-Za-z0-9]`)
 )
 
 func ValidatePasswordFormat(fl validator.FieldLevel) bool {

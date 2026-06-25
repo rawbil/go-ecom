@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func ErrorHandler(err error, w http.ResponseWriter) {
-	http.Error(w, err.Error(), http.StatusInternalServerError)
+func ErrorHandler(err error, w http.ResponseWriter, httpStatus int) {
+	http.Error(w, err.Error(), httpStatus)
 	fmt.Println(err)
 }
