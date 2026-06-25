@@ -7,12 +7,13 @@ import (
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
+	"github.com/rawbil/ecom2/internal/config"
 )
 
 type Service interface {
 	UserRegister(ctx context.Context, arg repository.CreateUserParams) (sql.Result, error)
 
-	UserLogin(ctx context.Context, arg authutils.UserLoginParams) (repository.User, error)
+	UserLogin(ctx context.Context, arg authutils.UserLoginParams) (repository.User, string, error)
 	// UserLogout()
 }
 
@@ -77,32 +78,37 @@ func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserPa
 }
 
 // ! LOGIN
-func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (repository.User, error) {
+func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (repository.User, string, error) {
 	//& validate fields
 	if err := authutils.UserLoginValidation(arg); err != nil {
 		if authutils.ValidationErrorCheck("required", err) {
-			return repository.User{}, FieldsRequiredError
+			return repository.User{}, "", FieldsRequiredError
 		}
 
 		if authutils.ValidationErrorCheck("email", err) {
-			return repository.User{}, InvalidEmailError
+			return repository.User{}, "", InvalidEmailError
 		}
 
-		return repository.User{}, err
+		return repository.User{}, "", err
 	}
 
 	//& Find User
 	user, err := svc.repository.ListUser(ctx, arg.Email)
 	if err != nil {
-		return repository.User{}, UserNotFoundError
+		return repository.User{}, "", UserNotFoundError
 	}
 
 	//& Compare password with stored hashed password
 	if err := authutils.ComparePasswords(arg.Password, user.Password); err != nil {
-		return repository.User{}, PasswordMismatchError
+		return repository.User{}, "", PasswordMismatchError
 	}
 
 	// & Generate authentication token
+	secret := []byte(config.GetJwtConfig().JwtSecret)
+	token, err := authutils.GenerateAuthToken(secret, int(user.ID))
+	if err != nil {
+		return repository.User{}, "", err
+	}
 
-	return user, nil
+	return user, token, nil
 }
