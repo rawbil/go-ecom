@@ -104,8 +104,12 @@ func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (r
 	}
 
 	// & Generate authentication token
-	secret := []byte(config.GetJwtConfig().JwtSecret)
-	token, err := authutils.GenerateAuthToken(secret, int(user.ID))
+	secret := config.GetJwtConfig().JwtSecret
+	if secret == "" {
+		return repository.User{}, "", errors.New("No token secret")
+	}
+
+	token, err := authutils.GenerateAuthToken(user.ID, []byte(secret))
 	if err != nil {
 		return repository.User{}, "", err
 	}

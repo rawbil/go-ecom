@@ -37,7 +37,7 @@ func GetServerAddr() string {
 
 func GetJwtConfig() *JwtConfig {
 	return &JwtConfig{
-		JwtSecret: getEnv("JWT_SECRET", "myverysecretkE4"),
+		JwtSecret: getEnv("JWT_SECRET", ""),
 		JwtExpire: int(getIntEnv("JWT_EXPIRE", 3600)),
 	}
 }
