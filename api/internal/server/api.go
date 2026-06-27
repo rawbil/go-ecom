@@ -69,9 +69,9 @@ func (app *Application) Mount() http.Handler {
 			// ! /api/v1/users
 			r.Route("/users", func(r chi.Router) {
 				//? GET /users/find-one
-				r.Get("/find-one", usersHandler.ListUser)
+				r.Get("/id", usersHandler.ListUser)
 				//? GET /users/find-all
-				r.Get("/find-all", usersHandler.ListAllUsers)
+				r.Get("/", usersHandler.ListAllUsers)
 				//? POST /users/create
 				r.Post("/create", usersHandler.CreateUser)
 				//?DELETE /users/delete
@@ -81,13 +81,13 @@ func (app *Application) Mount() http.Handler {
 			// ! /api/v1/products
 			r.Route("/products", func(r chi.Router) {
 				//? GET /products/list
-				r.Get("/list", productsHandler.ListProducts)
+				r.Get("/", productsHandler.ListProducts)
 				//? GET /products/one
-				r.Get("/one", productsHandler.ListProduct)
+				r.Get("/id", productsHandler.ListProduct)
 				//? POST /products
-				r.Post("/", productsHandler.CreateProduct)
+				r.Post("/create", productsHandler.CreateProduct)
 				//? DELETE /products
-				r.Delete("/", productsHandler.DeleteProduct)
+				r.Delete("/delete", productsHandler.DeleteProduct)
 			})
 
 			r.Route("/orders", func(r chi.Router) {
