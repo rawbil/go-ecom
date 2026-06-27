@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	"github.com/rawbil/ecom2/internal/auth"
+	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
 	"github.com/rawbil/ecom2/internal/orders"
 	"github.com/rawbil/ecom2/internal/products"
 	"github.com/rawbil/ecom2/internal/users"
@@ -38,16 +39,17 @@ func (app *Application) Mount() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	authService := auth.NewService(*repository.New(app.DB))
+	repo := repository.New(app.DB)
+	authService := auth.NewService(*repo)
 	authHandler := auth.NewHandler(authService)
 
-	productsService := products.NewService(*repository.New(app.DB))
+	productsService := products.NewService(*repo)
 	productsHandler := products.NewHandler(productsService)
 
-	usersService := users.NewService(*repository.New(app.DB))
+	usersService := users.NewService(*repo)
 	usersHandler := users.NewHandler(usersService)
 
-	orderService := orders.NewService(*repository.New(app.DB), app.DB)
+	orderService := orders.NewService(*repo, app.DB)
 	orderHandler := orders.NewHandler(orderService)
 
 	//* Root route
@@ -64,7 +66,7 @@ func (app *Application) Mount() http.Handler {
 		// ! /api/v1/users
 		r.Route("/users", func(r chi.Router) {
 			//? GET /users/find-one
-			r.Get("/find-one", usersHandler.ListUser)
+			r.Get("/find-one", authutils.AuthMiddleware(usersHandler.ListUser, *repo))
 			//? GET /users/find-all
 			r.Get("/find-all", usersHandler.ListAllUsers)
 			//? POST /users/create

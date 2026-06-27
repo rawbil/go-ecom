@@ -83,7 +83,7 @@ func AuthMiddleware(next http.HandlerFunc, repository repository.Queries) http.H
 		)
 
 		r = r.WithContext(ctx)
-		next(w, r)
+		next.ServeHTTP(w, r)
 	}
 }
 
