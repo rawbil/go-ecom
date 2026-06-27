@@ -54,7 +54,6 @@ func (app *Application) Mount() http.Handler {
 
 	//* Root route
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Use(authutils.AuthMiddleware(*repo))
 		// ! /api/v1/auth
 		r.Route("/auth", func(r chi.Router) {
 			//?POST /auth/register
@@ -63,8 +62,10 @@ func (app *Application) Mount() http.Handler {
 			r.Post("/login", authHandler.UserLogin)
 		})
 
+		//& Group protected routes to apply auth middleware
 		r.Group(func(r chi.Router) {
-
+			// Consume auth middleware for all protected routes
+			r.Use(authutils.AuthMiddleware(*repo))
 			// ! /api/v1/users
 			r.Route("/users", func(r chi.Router) {
 				//? GET /users/find-one
