@@ -253,6 +253,23 @@ func (q *Queries) ListUser(ctx context.Context, email string) (User, error) {
 	return i, err
 }
 
+const listUserById = `-- name: ListUserById :one
+SELECT id, username, email, created_at, password FROM users WHERE id = ? LIMIT 1
+`
+
+func (q *Queries) ListUserById(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRowContext(ctx, listUserById, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.CreatedAt,
+		&i.Password,
+	)
+	return i, err
+}
+
 const listUsers = `-- name: ListUsers :many
 SELECT id, username, email, created_at, password FROM users
 ORDER BY created_at

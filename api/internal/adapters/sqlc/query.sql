@@ -6,6 +6,9 @@ ORDER BY created_at;
 -- name: ListUser :one
 SELECT * FROM users WHERE email = ? LIMIT 1;
 
+-- name: ListUserById :one
+SELECT * FROM users WHERE id = ? LIMIT 1;
+
 -- name: CreateUser :execresult
 INSERT INTO users (username, email, password)
 VALUES (?, ?, ?);
