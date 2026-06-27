@@ -54,7 +54,7 @@ func (app *Application) Mount() http.Handler {
 
 	//* Root route
 	r.Route("/api/v1", func(r chi.Router) {
-
+		r.Use(authutils.AuthMiddleware(*repo))
 		// ! /api/v1/auth
 		r.Route("/auth", func(r chi.Router) {
 			//?POST /auth/register
@@ -63,32 +63,35 @@ func (app *Application) Mount() http.Handler {
 			r.Post("/login", authHandler.UserLogin)
 		})
 
-		// ! /api/v1/users
-		r.Route("/users", func(r chi.Router) {
-			//? GET /users/find-one
-			r.Get("/find-one", authutils.AuthMiddleware(usersHandler.ListUser, *repo))
-			//? GET /users/find-all
-			r.Get("/find-all", usersHandler.ListAllUsers)
-			//? POST /users/create
-			r.Post("/create", usersHandler.CreateUser)
-			//?DELETE /users/delete
-			r.Delete("/delete", usersHandler.DeleteUser)
-		})
+		r.Group(func(r chi.Router) {
 
-		// ! /api/v1/products
-		r.Route("/products", func(r chi.Router) {
-			//? GET /products/list
-			r.Get("/list", productsHandler.ListProducts)
-			//? GET /products/one
-			r.Get("/one", productsHandler.ListProduct)
-			//? POST /products
-			r.Post("/", productsHandler.CreateProduct)
-			//? DELETE /products
-			r.Delete("/", productsHandler.DeleteProduct)
-		})
+			// ! /api/v1/users
+			r.Route("/users", func(r chi.Router) {
+				//? GET /users/find-one
+				r.Get("/find-one", usersHandler.ListUser)
+				//? GET /users/find-all
+				r.Get("/find-all", usersHandler.ListAllUsers)
+				//? POST /users/create
+				r.Post("/create", usersHandler.CreateUser)
+				//?DELETE /users/delete
+				r.Delete("/delete", usersHandler.DeleteUser)
+			})
 
-		r.Route("/orders", func(r chi.Router) {
-			r.Post("/", orderHandler.CreateOrder)
+			// ! /api/v1/products
+			r.Route("/products", func(r chi.Router) {
+				//? GET /products/list
+				r.Get("/list", productsHandler.ListProducts)
+				//? GET /products/one
+				r.Get("/one", productsHandler.ListProduct)
+				//? POST /products
+				r.Post("/", productsHandler.CreateProduct)
+				//? DELETE /products
+				r.Delete("/", productsHandler.DeleteProduct)
+			})
+
+			r.Route("/orders", func(r chi.Router) {
+				r.Post("/", orderHandler.CreateOrder)
+			})
 		})
 
 		// health route GET /api/v1/health

@@ -23,6 +23,8 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+type Middleware func(http.Handler) http.Handler
+
 func GenerateAuthToken(userID int64, secret []byte) (string, error) {
 	expiration := time.Second * time.Duration(config.GetJwtConfig().JwtExpire)
 
@@ -43,47 +45,49 @@ func GenerateAuthToken(userID int64, secret []byte) (string, error) {
 }
 
 // ! AuthMiddleware
-func AuthMiddleware(next http.HandlerFunc, repository repository.Queries) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		auth := r.Header.Get("Authorization")
-		if auth == "" {
-			http.Error(w, "Authorization Header Missing", http.StatusUnauthorized)
-			return
-		}
+func AuthMiddleware(repository repository.Queries) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			auth := r.Header.Get("Authorization")
+			if auth == "" {
+				http.Error(w, "Authorization Header Missing", http.StatusUnauthorized)
+				return
+			}
 
-		bearer_token := strings.Split(auth, " ")
-		if len(bearer_token) != 2 || bearer_token[1] != "Bearer" {
-			http.Error(w, "Invalid token", http.StatusUnauthorized)
-			return
-		}
+			bearer_token := strings.Split(auth, " ")
+			if len(bearer_token) != 2 || bearer_token[1] != "Bearer" {
+				http.Error(w, "Invalid token", http.StatusUnauthorized)
+				return
+			}
 
-		tokenString := bearer_token[1]
+			tokenString := bearer_token[1]
 
-		//& Validate token
+			//& Validate token
 
-		claims, err := validateToken(tokenString)
-		if err != nil {
-			log.Printf("Failed to validate token: %v", err)
-			http.Error(w, "Error validating user", http.StatusUnauthorized)
-			return
-		}
+			claims, err := validateToken(tokenString)
+			if err != nil {
+				log.Printf("Failed to validate token: %v", err)
+				http.Error(w, "Error validating user", http.StatusUnauthorized)
+				return
+			}
 
-		//& Get user from DB with token's userID
-		user, err := repository.ListUserById(r.Context(), claims.UserID)
-		if err != nil {
-			log.Printf("Failed to find authenticated user: %v", err)
-			http.Error(w, "Error validating user", http.StatusUnauthorized)
-			return
-		}
-		//& Get UserID from token
-		ctx := context.WithValue(
-			r.Context(),
-			userIDContextKey,
-			user.ID,
-		)
+			//& Get user from DB with token's userID
+			user, err := repository.ListUserById(r.Context(), claims.UserID)
+			if err != nil {
+				log.Printf("Failed to find authenticated user: %v", err)
+				http.Error(w, "Error validating user", http.StatusUnauthorized)
+				return
+			}
+			//& Get UserID from token
+			ctx := context.WithValue(
+				r.Context(),
+				userIDContextKey,
+				user.ID,
+			)
 
-		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
+			r = r.WithContext(ctx)
+			next.ServeHTTP(w, r)
+		})
 	}
 }
 
