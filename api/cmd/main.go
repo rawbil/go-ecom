@@ -5,12 +5,18 @@ import (
 	"os"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
 	"github.com/rawbil/ecom2/internal/config"
 	db "github.com/rawbil/ecom2/internal/database"
 	"github.com/rawbil/ecom2/internal/server"
 )
 
 func main() {
+
+	err := godotenv.Load()
+	if err != nil {
+		slog.Warn("No .env file found")
+	}
 
 	cfg := mysql.Config{
 		Addr:                 config.InitConfig().DBAddress,

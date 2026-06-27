@@ -55,7 +55,7 @@ func AuthMiddleware(repository repository.Queries) Middleware {
 			}
 
 			bearer_token := strings.Split(auth, " ")
-			if len(bearer_token) != 2 || bearer_token[1] != "Bearer" {
+			if len(bearer_token) != 2 || bearer_token[0] != "Bearer" {
 				http.Error(w, "Invalid token", http.StatusUnauthorized)
 				return
 			}
