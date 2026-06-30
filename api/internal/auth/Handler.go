@@ -78,3 +78,20 @@ func (h *Handler) UserLogin(w http.ResponseWriter, r *http.Request) {
 		Data:    map[string]any{"user": user, "token": token, "refresh_token": refreshToken},
 	})
 }
+
+// ! LOGOUT
+func (h *Handler) UserLogout(w http.ResponseWriter, r *http.Request) {
+	err := h.Service.LogoutUser(r.Context())
+	if err != nil {
+		if err == AuthUserNotFound || err == AuthNotFound {
+			utils.ErrorHandler(err, w, http.StatusUnauthorized)
+			return
+		}
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		return
+	}
+
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: "Logged out successfully",
+	})
+}

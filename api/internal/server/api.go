@@ -60,6 +60,8 @@ func (app *Application) Mount() http.Handler {
 			r.Post("/register", authHandler.UserRegister)
 			//? POST /auth/login
 			r.Post("/login", authHandler.UserLogin)
+			//? POST /auth/logout
+			r.With(authutils.AuthMiddleware(*repo)).Post("/logout", authHandler.UserLogout)
 		})
 
 		//& Group protected routes to apply auth middleware

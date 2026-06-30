@@ -14,7 +14,7 @@ type Service interface {
 	UserRegister(ctx context.Context, arg repository.CreateUserParams) (sql.Result, error)
 
 	UserLogin(ctx context.Context, arg authutils.UserLoginParams) (repository.User, string, string, error)
-	// UserLogout()
+	LogoutUser(ctx context.Context) error
 }
 
 type Svc struct {
@@ -37,6 +37,8 @@ var (
 	SqlNoRows             = errors.New("No record available")
 	UserNotFoundError     = errors.New("User Not Found")
 	PasswordMismatchError = errors.New("Invalid Password")
+	AuthNotFound          = errors.New("Request User not found. Login again...")
+	AuthUserNotFound      = errors.New("Authenticated User not found. Login again...")
 )
 
 // ! REGISTER
@@ -166,4 +168,48 @@ func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (r
 	}
 
 	return user, token, refreshToken, nil
+}
+
+// ! LOGOUT
+func (svc *Svc) LogoutUser(ctx context.Context) error {
+	//& Ensure authenticated user exists from context
+	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	if !ok {
+		return AuthNotFound
+	}
+
+	//& Get User
+	user, err := svc.repository.ListUserById(ctx, user_id)
+	if err != nil {
+		return AuthUserNotFound
+	}
+
+	//& Delete refresh token
+	tx, err := svc.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	qtx := svc.repository.WithTx(tx)
+
+	//& Delete refresh_token
+	if err := qtx.DeleteRefreshToken(ctx, user.UserID); err != nil {
+		return err
+	}
+
+	//& Nullify refresh_token on user
+	if _, err := qtx.UpdateUserToken(ctx, repository.UpdateUserTokenParams{
+		RefreshTokenID: sql.NullInt64{Valid: false},
+		UserID:         user.UserID,
+	}); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
 }

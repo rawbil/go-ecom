@@ -35,11 +35,6 @@ WHERE user_id = ? AND id = ?;
 -- name: DeleteRefreshToken :exec
 DELETE FROM refresh_tokens WHERE user_id = ?;
 
-
--- name: CreateProduct :execresult
-INSERT INTO products (product_name, price, quantity)
-VALUES (?, ?, ?);
-
 -- name: ListProduct :one
 SELECT * FROM products WHERE product_id = ? LIMIT 1;
 
