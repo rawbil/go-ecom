@@ -3,9 +3,11 @@ CREATE TABLE IF NOT EXISTS products(
     product_id BIGINT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     product_name TEXT NOT NULL,
     price BIGINT NOT NULL,
+    quantity INT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT NOW(),
     updated_at DATETIME NOT NULL DEFAULT NOW(),
-    CONSTRAINT chk_price CHECK(price > 0)
+    CONSTRAINT chk_price CHECK(price > 0),
+    CONSTRAINT chk_qty CHECK(quantity > 0)
 );
 
 -- +goose Down

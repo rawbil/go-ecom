@@ -5,8 +5,24 @@
 package repository
 
 import (
+	"database/sql"
 	"time"
 )
+
+type Cart struct {
+	OrderID   int64     `json:"order_id"`
+	UserID    int64     `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type CartItem struct {
+	ID         int64     `json:"id"`
+	OrderID    int64     `json:"order_id"`
+	ProductID  int64     `json:"product_id"`
+	TotalPrice int64     `json:"total_price"`
+	Quantity   int32     `json:"quantity"`
+	CreatedAt  time.Time `json:"created_at"`
+}
 
 type Order struct {
 	OrderID   int64     `json:"order_id"`
@@ -27,15 +43,24 @@ type Product struct {
 	ProductID   int64     `json:"product_id"`
 	ProductName string    `json:"product_name"`
 	Price       int64     `json:"price"`
+	Quantity    int32     `json:"quantity"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
-	Quantity    int32     `json:"quantity"`
+}
+
+type RefreshToken struct {
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
+	IssuedAt  time.Time `json:"issued_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 type User struct {
-	ID        int64     `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	Password  string    `json:"password"`
+	UserID         int64         `json:"user_id"`
+	Username       string        `json:"username"`
+	Email          string        `json:"email"`
+	Password       string        `json:"password"`
+	RefreshTokenID sql.NullInt64 `json:"refresh_token_id"`
+	CreatedAt      time.Time     `json:"created_at"`
+	UpdatedAt      time.Time     `json:"updated_at"`
 }

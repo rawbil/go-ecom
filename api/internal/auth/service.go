@@ -109,7 +109,7 @@ func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (r
 		return repository.User{}, "", errors.New("No token secret")
 	}
 
-	token, err := authutils.GenerateAuthToken(user.ID, []byte(secret))
+	token, err := authutils.GenerateAuthToken(user.UserID, []byte(secret))
 	if err != nil {
 		return repository.User{}, "", err
 	}

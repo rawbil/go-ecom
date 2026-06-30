@@ -184,7 +184,7 @@ func (q *Queries) ListOrders(ctx context.Context) ([]Order, error) {
 }
 
 const listProduct = `-- name: ListProduct :one
-SELECT product_id, product_name, price, created_at, updated_at, quantity FROM products WHERE product_id = ? LIMIT 1
+SELECT product_id, product_name, price, quantity, created_at, updated_at FROM products WHERE product_id = ? LIMIT 1
 `
 
 func (q *Queries) ListProduct(ctx context.Context, productID int64) (Product, error) {
@@ -194,15 +194,15 @@ func (q *Queries) ListProduct(ctx context.Context, productID int64) (Product, er
 		&i.ProductID,
 		&i.ProductName,
 		&i.Price,
+		&i.Quantity,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Quantity,
 	)
 	return i, err
 }
 
 const listProducts = `-- name: ListProducts :many
-SELECT product_id, product_name, price, created_at, updated_at, quantity FROM products 
+SELECT product_id, product_name, price, quantity, created_at, updated_at FROM products 
 ORDER BY updated_at
 `
 
@@ -219,9 +219,9 @@ func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 			&i.ProductID,
 			&i.ProductName,
 			&i.Price,
+			&i.Quantity,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Quantity,
 		); err != nil {
 			return nil, err
 		}
@@ -237,41 +237,45 @@ func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 }
 
 const listUser = `-- name: ListUser :one
-SELECT id, username, email, created_at, password FROM users WHERE email = ? LIMIT 1
+SELECT user_id, username, email, password, refresh_token_id, created_at, updated_at FROM users WHERE email = ? LIMIT 1
 `
 
 func (q *Queries) ListUser(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRowContext(ctx, listUser, email)
 	var i User
 	err := row.Scan(
-		&i.ID,
+		&i.UserID,
 		&i.Username,
 		&i.Email,
-		&i.CreatedAt,
 		&i.Password,
+		&i.RefreshTokenID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const listUserById = `-- name: ListUserById :one
-SELECT id, username, email, created_at, password FROM users WHERE id = ? LIMIT 1
+SELECT user_id, username, email, password, refresh_token_id, created_at, updated_at FROM users WHERE user_id = ? LIMIT 1
 `
 
-func (q *Queries) ListUserById(ctx context.Context, id int64) (User, error) {
-	row := q.db.QueryRowContext(ctx, listUserById, id)
+func (q *Queries) ListUserById(ctx context.Context, userID int64) (User, error) {
+	row := q.db.QueryRowContext(ctx, listUserById, userID)
 	var i User
 	err := row.Scan(
-		&i.ID,
+		&i.UserID,
 		&i.Username,
 		&i.Email,
-		&i.CreatedAt,
 		&i.Password,
+		&i.RefreshTokenID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, username, email, created_at, password FROM users
+SELECT user_id, username, email, password, refresh_token_id, created_at, updated_at FROM users
 ORDER BY created_at
 `
 
@@ -285,11 +289,13 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	for rows.Next() {
 		var i User
 		if err := rows.Scan(
-			&i.ID,
+			&i.UserID,
 			&i.Username,
 			&i.Email,
-			&i.CreatedAt,
 			&i.Password,
+			&i.RefreshTokenID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

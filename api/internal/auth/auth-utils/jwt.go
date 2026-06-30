@@ -82,7 +82,7 @@ func AuthMiddleware(repository repository.Queries) Middleware {
 			ctx := context.WithValue(
 				r.Context(),
 				userIDContextKey,
-				user.ID,
+				user.UserID,
 			)
 
 			r = r.WithContext(ctx)
