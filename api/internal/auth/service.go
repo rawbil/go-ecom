@@ -13,7 +13,7 @@ import (
 type Service interface {
 	UserRegister(ctx context.Context, arg repository.CreateUserParams) (sql.Result, error)
 
-	UserLogin(ctx context.Context, arg authutils.UserLoginParams) (repository.User, string, error)
+	UserLogin(ctx context.Context, arg authutils.UserLoginParams) (repository.User, string, string, error)
 	// UserLogout()
 }
 
@@ -80,67 +80,90 @@ func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserPa
 }
 
 // ! LOGIN
-func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (repository.User, string, error) {
+func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (repository.User, string, string, error) {
 	//& validate fields
 	if err := authutils.UserLoginValidation(arg); err != nil {
 		if authutils.ValidationErrorCheck("required", err) {
-			return repository.User{}, "", FieldsRequiredError
+			return repository.User{}, "", "", FieldsRequiredError
 		}
 
 		if authutils.ValidationErrorCheck("email", err) {
-			return repository.User{}, "", InvalidEmailError
+			return repository.User{}, "", "", InvalidEmailError
 		}
 
-		return repository.User{}, "", err
+		return repository.User{}, "", "", err
 	}
 
 	//& Find User
 	user, err := svc.repository.ListUser(ctx, arg.Email)
 	if err != nil {
-		return repository.User{}, "", UserNotFoundError
+		return repository.User{}, "", "", UserNotFoundError
 	}
 
 	//& Compare password with stored hashed password
 	if err := authutils.ComparePasswords(arg.Password, user.Password); err != nil {
-		return repository.User{}, "", PasswordMismatchError
+		return repository.User{}, "", "", PasswordMismatchError
 	}
 
 	// & Generate authentication token
 	secret := config.GetJwtConfig().JwtSecret
 	if secret == "" {
-		return repository.User{}, "", errors.New("No token secret")
+		return repository.User{}, "", "", errors.New("No token secret")
 	}
 
 	token, err := authutils.GenerateAuthToken(user.UserID, []byte(secret))
 	if err != nil {
-		return repository.User{}, "", err
+		return repository.User{}, "", "", err
 	}
 
 	//& Refresh Token
-	refreshToken, err := authutils.GenerateRefreshToken(user.UserID, []byte(secret))
+	refreshToken, issued_at, expired_at, err := authutils.GenerateRefreshToken(user.UserID, []byte(secret))
 	if err != nil {
-		return repository.User{}, "", err
+		return repository.User{}, "", "", err
 	}
 
 	// & Hash Refresh Token
 	hashedToken, err := authutils.PasswordHash(refreshToken)
 	if err != nil {
-		return repository.User{}, "", err
+		return repository.User{}, "", "", err
 	}
 
 	// & Save Refresh Token in Database (users and refresh_tokens transaction)
 
 	tx, err := svc.db.Begin()
 	if err != nil {
-		return repository.User{}, "", err
+		return repository.User{}, "", "", err
 	}
+
+	defer tx.Rollback()
 
 	qtx := svc.repository.WithTx(tx)
 
-	qtx.CreateRefreshToken(ctx, repository.CreateRefreshTokenParams{
-		UserID: user.UserID,
-		IssuedAt: token.
+	rt, err := qtx.CreateRefreshToken(ctx, repository.CreateRefreshTokenParams{
+		RefreshToken: hashedToken,
+		UserID:       user.UserID,
+		IssuedAt:     issued_at,
+		ExpiresAt:    expired_at,
 	})
+	if err != nil {
+		return repository.User{}, "", "", err
+	}
 
-	return user, token, nil
+	rt_id, err := rt.LastInsertId()
+	if err != nil {
+		return repository.User{}, "", "", err
+	}
+
+	if _, err := qtx.UpdateUserToken(ctx, repository.UpdateUserTokenParams{
+		RefreshTokenID: sql.NullInt64{Int64: rt_id, Valid: true},
+		UserID:         user.UserID,
+	}); err != nil {
+		return repository.User{}, "", "", err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return repository.User{}, "", "", err
+	}
+
+	return user, token, refreshToken, nil
 }

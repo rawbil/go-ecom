@@ -381,3 +381,18 @@ func (q *Queries) UpdateRefreshToken(ctx context.Context, arg UpdateRefreshToken
 		arg.ID,
 	)
 }
+
+const updateUserToken = `-- name: UpdateUserToken :execresult
+UPDATE users
+SET refresh_token_id = ?
+WHERE user_id = ?
+`
+
+type UpdateUserTokenParams struct {
+	RefreshTokenID sql.NullInt64 `json:"refresh_token_id"`
+	UserID         int64         `json:"user_id"`
+}
+
+func (q *Queries) UpdateUserToken(ctx context.Context, arg UpdateUserTokenParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateUserToken, arg.RefreshTokenID, arg.UserID)
+}

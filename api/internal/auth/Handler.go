@@ -57,7 +57,7 @@ func (h *Handler) UserLogin(w http.ResponseWriter, r *http.Request) {
 	var params authutils.UserLoginParams
 	json.NewDecoder(r.Body).Decode(&params)
 
-	user, token, err := h.Service.UserLogin(r.Context(), params)
+	user, token, refreshToken, err := h.Service.UserLogin(r.Context(), params)
 	if err != nil {
 		if err == InvalidEmailError || err == FieldsRequiredError || err == PasswordMismatchError {
 			utils.ErrorHandler(err, w, http.StatusBadRequest)
@@ -75,6 +75,6 @@ func (h *Handler) UserLogin(w http.ResponseWriter, r *http.Request) {
 
 	utils.JsonResponse(w, utils.SuccessMessage{
 		Message: "Login Success!",
-		Data:    map[string]any{"user": user, "token": token},
+		Data:    map[string]any{"user": user, "token": token, "refresh_token": refreshToken},
 	})
 }
