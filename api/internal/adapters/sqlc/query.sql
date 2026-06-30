@@ -21,6 +21,11 @@ UPDATE users
 SET refresh_token_id = ?
 WHERE user_id = ?;
 
+-- name: UpdatePassword :execresult
+UPDATE users
+SET password = ?
+WHERE user_id = ?;
+
 -- name: CreateRefreshToken :execresult
 INSERT INTO refresh_tokens (refresh_token, user_id, issued_at, expires_at)
 VALUES (?, ?, ?, ?);
@@ -32,8 +37,17 @@ SET refresh_token = ?,
     expires_at = ?
 WHERE user_id = ? AND id = ?;
 
+-- name: GetRefreshToken :one
+SELECT * FROM refresh_tokens
+WHERE user_id = ?;
+
 -- name: DeleteRefreshToken :exec
 DELETE FROM refresh_tokens WHERE user_id = ?;
+
+
+-- name: CreateProduct :execresult
+INSERT INTO products(product_name, price, quantity)
+VALUES (?, ?, ?);
 
 -- name: ListProduct :one
 SELECT * FROM products WHERE product_id = ? LIMIT 1;

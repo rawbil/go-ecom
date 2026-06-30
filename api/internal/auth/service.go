@@ -15,6 +15,7 @@ type Service interface {
 
 	UserLogin(ctx context.Context, arg authutils.UserLoginParams) (repository.User, string, string, error)
 	LogoutUser(ctx context.Context) error
+	PasswordReset(ctx context.Context, arg authutils.PasswordResetParams) error
 }
 
 type Svc struct {
@@ -39,6 +40,7 @@ var (
 	PasswordMismatchError = errors.New("Invalid Password")
 	AuthNotFound          = errors.New("Request User not found. Login again...")
 	AuthUserNotFound      = errors.New("Authenticated User not found. Login again...")
+	SimilarPasswordError  = errors.New("New password should be different from Old password")
 )
 
 // ! REGISTER
@@ -50,7 +52,7 @@ func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserPa
 			return nil, FieldsRequiredError
 		}
 		// password error
-		if authutils.ValidationErrorCheck("password_format", err) || authutils.ValidationErrorCheck("min", err) {
+		if authutils.ValidationErrorCheck("password_format", err) || authutils.ValidationErrorCheck("min", err) || authutils.ValidationErrorCheck("max", err) {
 			return nil, InvalidPasswordError
 		}
 		// email error
@@ -213,3 +215,79 @@ func (svc *Svc) LogoutUser(ctx context.Context) error {
 
 	return nil
 }
+
+// ! Password Reset
+func (svc *Svc) PasswordReset(ctx context.Context, arg authutils.PasswordResetParams) error {
+	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	if !ok {
+		return AuthNotFound
+	}
+
+	//& Validate Fields
+	if err := authutils.PasswordResetValidation(arg); err != nil {
+		if authutils.ValidationErrorCheck("required", err) {
+			return FieldsRequiredError
+		}
+
+		if authutils.ValidationErrorCheck("password_format", err) || authutils.ValidationErrorCheck("min", err) || authutils.ValidationErrorCheck("max", err) {
+			return InvalidPasswordError
+		}
+		return err
+	}
+
+	//& Find user
+	user, err := svc.repository.ListUserById(ctx, user_id)
+	if err != nil {
+		return AuthUserNotFound
+	}
+
+	//& Ensure new password is different from old password
+	if err := authutils.ComparePasswords(arg.NewPassword, user.Password); err == nil {
+		return SimilarPasswordError
+	}
+
+	//& Compare Passwords
+	if err := authutils.ComparePasswords(arg.OldPassword, user.Password); err != nil {
+		return PasswordMismatchError
+	}
+
+	//& Hash new password
+	hashedPassword, err := authutils.PasswordHash(arg.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	if _, err := svc.repository.UpdatePassword(ctx, repository.UpdatePasswordParams{
+		Password: hashedPassword,
+		UserID:   user.UserID,
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ! Refresh Tokens
+// func (svc *Svc) RefreshTokens(ctx context.Context) (string, string, error) {
+// 	user_id, ok := authutils.GetUserIDFromContext(ctx)
+// 	if !ok {
+// 		return "", "", AuthNotFound
+// 	}
+
+// 	//& Ensure user exists
+// 	user, err := svc.repository.ListUserById(ctx, user_id)
+// 	if err != nil {
+// 		return "", "", AuthUserNotFound
+// 	}
+
+// 	//& Find refresh token
+// 	hashed_refresh_token, err := svc.repository.GetRefreshToken(ctx, user.UserID)
+// 	if err != nil {
+// 		return "", "", err
+// 	}
+
+// 	secret = []byte(config.GetJwtConfig().JwtSecret)
+
+// 	authutils.ComparePasswords()
+
+// }

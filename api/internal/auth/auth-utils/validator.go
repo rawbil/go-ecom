@@ -41,6 +41,10 @@ func UserLoginValidation(arg UserLoginParams) error {
 	return validate.Struct(arg)
 }
 
+func PasswordResetValidation(arg PasswordResetParams) error {
+	return validate.Struct(arg)
+}
+
 func ValidationErrorCheck(tag string, err error) bool {
 	var validationErrors validator.ValidationErrors
 	if !errors.As(err, &validationErrors) {

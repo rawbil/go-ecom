@@ -42,7 +42,7 @@ func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams
 }
 
 const createProduct = `-- name: CreateProduct :execresult
-INSERT INTO products (product_name, price, quantity)
+INSERT INTO products(product_name, price, quantity)
 VALUES (?, ?, ?)
 `
 
@@ -118,6 +118,24 @@ DELETE FROM users WHERE email = ?
 func (q *Queries) DeleteUser(ctx context.Context, email string) error {
 	_, err := q.db.ExecContext(ctx, deleteUser, email)
 	return err
+}
+
+const getRefreshToken = `-- name: GetRefreshToken :one
+SELECT id, refresh_token, user_id, issued_at, expires_at FROM refresh_tokens
+WHERE user_id = ?
+`
+
+func (q *Queries) GetRefreshToken(ctx context.Context, userID int64) (RefreshToken, error) {
+	row := q.db.QueryRowContext(ctx, getRefreshToken, userID)
+	var i RefreshToken
+	err := row.Scan(
+		&i.ID,
+		&i.RefreshToken,
+		&i.UserID,
+		&i.IssuedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
 }
 
 const listOrder = `-- name: ListOrder :one
@@ -339,6 +357,21 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updatePassword = `-- name: UpdatePassword :execresult
+UPDATE users
+SET password = ?
+WHERE user_id = ?
+`
+
+type UpdatePasswordParams struct {
+	Password string `json:"password"`
+	UserID   int64  `json:"user_id"`
+}
+
+func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updatePassword, arg.Password, arg.UserID)
 }
 
 const updateProductQuantity = `-- name: UpdateProductQuantity :execresult

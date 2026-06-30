@@ -95,3 +95,33 @@ func (h *Handler) UserLogout(w http.ResponseWriter, r *http.Request) {
 		Message: "Logged out successfully",
 	})
 }
+
+// ! PASSWORD RESET
+func (h *Handler) PasswordReset(w http.ResponseWriter, r *http.Request) {
+	var params authutils.PasswordResetParams
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	if err := decoder.Decode(&params); err != nil {
+		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		return
+	}
+
+	err := h.Service.PasswordReset(r.Context(), params)
+	if err != nil {
+		if err == FieldsRequiredError || err == InvalidPasswordError {
+			utils.ErrorHandler(err, w, http.StatusBadRequest)
+			return
+		}
+		if err == PasswordMismatchError || err == SimilarPasswordError {
+			utils.ErrorHandler(err, w, http.StatusBadRequest)
+			return
+		}
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		return
+	}
+
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: "Password reset successful",
+	})
+}
