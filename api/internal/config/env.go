@@ -16,8 +16,9 @@ type Config struct {
 }
 
 type JwtConfig struct {
-	JwtSecret string
-	JwtExpire int
+	JwtSecret          string
+	JwtExpire          int
+	RefreshTokenExpire int
 }
 
 func InitConfig() Config {
@@ -37,8 +38,9 @@ func GetServerAddr() string {
 
 func GetJwtConfig() JwtConfig {
 	return JwtConfig{
-		JwtSecret: getEnv("JWT_SECRET", ""),
-		JwtExpire: int(getIntEnv("JWT_EXPIRE", 3600)),
+		JwtSecret:          getEnv("JWT_SECRET", ""),
+		JwtExpire:          int(getIntEnv("JWT_EXPIRE", 3600)),
+		RefreshTokenExpire: int(getIntEnv("REFRESH_TOKEN_EXPIRE", 7)),
 	}
 }
 

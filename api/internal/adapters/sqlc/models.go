@@ -49,10 +49,11 @@ type Product struct {
 }
 
 type RefreshToken struct {
-	ID        int64     `json:"id"`
-	UserID    int64     `json:"user_id"`
-	IssuedAt  time.Time `json:"issued_at"`
-	ExpiresAt time.Time `json:"expires_at"`
+	ID           int64     `json:"id"`
+	RefreshToken string    `json:"refresh_token"`
+	UserID       int64     `json:"user_id"`
+	IssuedAt     time.Time `json:"issued_at"`
+	ExpiresAt    time.Time `json:"expires_at"`
 }
 
 type User struct {
@@ -60,7 +61,7 @@ type User struct {
 	Username       string        `json:"username"`
 	Email          string        `json:"email"`
 	Password       string        `json:"password"`
-	RefreshTokenID sql.NullInt64 `json:"refresh_token_id"`
 	CreatedAt      time.Time     `json:"created_at"`
 	UpdatedAt      time.Time     `json:"updated_at"`
+	RefreshTokenID sql.NullInt64 `json:"refresh_token_id"`
 }

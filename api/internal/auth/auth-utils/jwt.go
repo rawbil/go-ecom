@@ -44,6 +44,27 @@ func GenerateAuthToken(userID int64, secret []byte) (string, error) {
 	return tokenString, nil
 }
 
+func GenerateRefreshToken(userID int64, secret []byte) (string, time.Time, time.Time, error) {
+	issuedAt := time.Now()
+	expiresAt := issuedAt.Add(time.Hour * 24 * time.Duration(config.GetJwtConfig().RefreshTokenExpire))
+
+	claims := Claims{
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(issuedAt),
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString(secret)
+	if err != nil {
+		return "", time.Time{}, time.Time{}, err
+	}
+
+	return tokenString, issuedAt, expiresAt, err
+}
+
 // ! AuthMiddleware
 func AuthMiddleware(repository repository.Queries) Middleware {
 	return func(next http.Handler) http.Handler {

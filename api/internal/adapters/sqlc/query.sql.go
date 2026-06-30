@@ -8,6 +8,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const createOrder = `-- name: CreateOrder :execresult
@@ -55,6 +56,27 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (s
 	return q.db.ExecContext(ctx, createProduct, arg.ProductName, arg.Price, arg.Quantity)
 }
 
+const createRefreshToken = `-- name: CreateRefreshToken :execresult
+INSERT INTO refresh_tokens (refresh_token, user_id, issued_at, expires_at)
+VALUES (?, ?, ?, ?)
+`
+
+type CreateRefreshTokenParams struct {
+	RefreshToken string    `json:"refresh_token"`
+	UserID       int64     `json:"user_id"`
+	IssuedAt     time.Time `json:"issued_at"`
+	ExpiresAt    time.Time `json:"expires_at"`
+}
+
+func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createRefreshToken,
+		arg.RefreshToken,
+		arg.UserID,
+		arg.IssuedAt,
+		arg.ExpiresAt,
+	)
+}
+
 const createUser = `-- name: CreateUser :execresult
 INSERT INTO users (username, email, password)
 VALUES (?, ?, ?)
@@ -77,6 +99,15 @@ WHERE product_id = ?
 
 func (q *Queries) DeleteProduct(ctx context.Context, productID int64) error {
 	_, err := q.db.ExecContext(ctx, deleteProduct, productID)
+	return err
+}
+
+const deleteRefreshToken = `-- name: DeleteRefreshToken :exec
+DELETE FROM refresh_tokens WHERE user_id = ?
+`
+
+func (q *Queries) DeleteRefreshToken(ctx context.Context, userID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteRefreshToken, userID)
 	return err
 }
 
@@ -237,7 +268,7 @@ func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 }
 
 const listUser = `-- name: ListUser :one
-SELECT user_id, username, email, password, refresh_token_id, created_at, updated_at FROM users WHERE email = ? LIMIT 1
+SELECT user_id, username, email, password, created_at, updated_at, refresh_token_id FROM users WHERE email = ? LIMIT 1
 `
 
 func (q *Queries) ListUser(ctx context.Context, email string) (User, error) {
@@ -248,15 +279,15 @@ func (q *Queries) ListUser(ctx context.Context, email string) (User, error) {
 		&i.Username,
 		&i.Email,
 		&i.Password,
-		&i.RefreshTokenID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.RefreshTokenID,
 	)
 	return i, err
 }
 
 const listUserById = `-- name: ListUserById :one
-SELECT user_id, username, email, password, refresh_token_id, created_at, updated_at FROM users WHERE user_id = ? LIMIT 1
+SELECT user_id, username, email, password, created_at, updated_at, refresh_token_id FROM users WHERE user_id = ? LIMIT 1
 `
 
 func (q *Queries) ListUserById(ctx context.Context, userID int64) (User, error) {
@@ -267,15 +298,15 @@ func (q *Queries) ListUserById(ctx context.Context, userID int64) (User, error) 
 		&i.Username,
 		&i.Email,
 		&i.Password,
-		&i.RefreshTokenID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.RefreshTokenID,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT user_id, username, email, password, refresh_token_id, created_at, updated_at FROM users
+SELECT user_id, username, email, password, created_at, updated_at, refresh_token_id FROM users
 ORDER BY created_at
 `
 
@@ -293,9 +324,9 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.Username,
 			&i.Email,
 			&i.Password,
-			&i.RefreshTokenID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.RefreshTokenID,
 		); err != nil {
 			return nil, err
 		}
@@ -323,4 +354,30 @@ type UpdateProductQuantityParams struct {
 
 func (q *Queries) UpdateProductQuantity(ctx context.Context, arg UpdateProductQuantityParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, updateProductQuantity, arg.Quantity, arg.ProductID)
+}
+
+const updateRefreshToken = `-- name: UpdateRefreshToken :execresult
+UPDATE refresh_tokens
+SET refresh_token = ?,
+    issued_at = ?,
+    expires_at = ?
+WHERE user_id = ? AND id = ?
+`
+
+type UpdateRefreshTokenParams struct {
+	RefreshToken string    `json:"refresh_token"`
+	IssuedAt     time.Time `json:"issued_at"`
+	ExpiresAt    time.Time `json:"expires_at"`
+	UserID       int64     `json:"user_id"`
+	ID           int64     `json:"id"`
+}
+
+func (q *Queries) UpdateRefreshToken(ctx context.Context, arg UpdateRefreshTokenParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateRefreshToken,
+		arg.RefreshToken,
+		arg.IssuedAt,
+		arg.ExpiresAt,
+		arg.UserID,
+		arg.ID,
+	)
 }

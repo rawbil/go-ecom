@@ -19,11 +19,13 @@ type Service interface {
 
 type Svc struct {
 	repository repository.Queries
+	db         *sql.DB
 }
 
-func NewService(repository repository.Queries) Service {
+func NewService(repository repository.Queries, db *sql.DB) Service {
 	return &Svc{
 		repository: repository,
+		db:         db,
 	}
 }
 
@@ -113,6 +115,32 @@ func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (r
 	if err != nil {
 		return repository.User{}, "", err
 	}
+
+	//& Refresh Token
+	refreshToken, err := authutils.GenerateRefreshToken(user.UserID, []byte(secret))
+	if err != nil {
+		return repository.User{}, "", err
+	}
+
+	// & Hash Refresh Token
+	hashedToken, err := authutils.PasswordHash(refreshToken)
+	if err != nil {
+		return repository.User{}, "", err
+	}
+
+	// & Save Refresh Token in Database (users and refresh_tokens transaction)
+
+	tx, err := svc.db.Begin()
+	if err != nil {
+		return repository.User{}, "", err
+	}
+
+	qtx := svc.repository.WithTx(tx)
+
+	qtx.CreateRefreshToken(ctx, repository.CreateRefreshTokenParams{
+		UserID: user.UserID,
+		IssuedAt: token.
+	})
 
 	return user, token, nil
 }

@@ -16,6 +16,21 @@ VALUES (?, ?, ?);
 -- name: DeleteUser :exec
 DELETE FROM users WHERE email = ?;
 
+-- name: CreateRefreshToken :execresult
+INSERT INTO refresh_tokens (refresh_token, user_id, issued_at, expires_at)
+VALUES (?, ?, ?, ?);
+
+-- name: UpdateRefreshToken :execresult
+UPDATE refresh_tokens
+SET refresh_token = ?,
+    issued_at = ?,
+    expires_at = ?
+WHERE user_id = ? AND id = ?;
+
+-- name: DeleteRefreshToken :exec
+DELETE FROM refresh_tokens WHERE user_id = ?;
+
+
 -- name: CreateProduct :execresult
 INSERT INTO products (product_name, price, quantity)
 VALUES (?, ?, ?);

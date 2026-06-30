@@ -40,7 +40,7 @@ func (app *Application) Mount() http.Handler {
 	r.Use(middleware.Recoverer)
 
 	repo := repository.New(app.DB)
-	authService := auth.NewService(*repo)
+	authService := auth.NewService(*repo, app.DB)
 	authHandler := auth.NewHandler(authService)
 
 	productsService := products.NewService(*repo)
