@@ -254,9 +254,9 @@ func (svc *Svc) RefreshTokens(ctx context.Context, arg authutils.RefreshTokenPar
 		return "", "", InvalidRefreshToken
 	}
 
-	//& Find user using claim
-	if _, err := svc.repository.ListUserById(ctx, claims.UserID); err != nil {
-		return "", "", AuthUserNotFound
+	//& Ensure claim id and context id are similar
+	if claims.UserID != user_id {
+		return "", "", InvalidRefreshToken
 	}
 
 	//& Compare refresh tokens
