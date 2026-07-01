@@ -135,13 +135,27 @@ func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (r
 	// & Hash Refresh Token
 	hashedToken := authutils.RefreshTokenHash(refreshToken)
 
-	// & Save Refresh Token in Database
-	if _, err := svc.repository.CreateRefreshToken(ctx, repository.CreateRefreshTokenParams{
-		RefreshToken: hashedToken,
-		UserID:       user.UserID,
-		IssuedAt:     issued_at,
-		ExpiresAt:    expired_at,
-	}); err != nil {
+	//& Verify if user already has token in database
+	if _, err := svc.repository.GetRefreshToken(ctx, user.UserID); err == nil {
+		if _, err := svc.repository.UpdateRefreshToken(ctx, repository.UpdateRefreshTokenParams{
+			RefreshToken: hashedToken,
+			UserID:       user.UserID,
+			IssuedAt:     issued_at,
+			ExpiresAt:    expired_at,
+		}); err != nil {
+			return repository.User{}, "", "", err
+		}
+	} else if errors.Is(err, sql.ErrNoRows) {
+		// & Save Refresh Token in Database
+		if _, err := svc.repository.CreateRefreshToken(ctx, repository.CreateRefreshTokenParams{
+			RefreshToken: hashedToken,
+			UserID:       user.UserID,
+			IssuedAt:     issued_at,
+			ExpiresAt:    expired_at,
+		}); err != nil {
+			return repository.User{}, "", "", err
+		}
+	} else {
 		return repository.User{}, "", "", err
 	}
 

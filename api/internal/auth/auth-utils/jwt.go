@@ -88,7 +88,7 @@ func AuthMiddleware(repository repository.Queries) Middleware {
 			claims, err := ValidateToken(tokenString)
 			if err != nil {
 				log.Printf("Failed to validate token: %v", err)
-				http.Error(w, "Error validating user", http.StatusUnauthorized)
+				http.Error(w, "Error validating user. Try logging again...", http.StatusUnauthorized)
 				return
 			}
 
@@ -96,7 +96,7 @@ func AuthMiddleware(repository repository.Queries) Middleware {
 			user, err := repository.ListUserById(r.Context(), claims.UserID)
 			if err != nil {
 				log.Printf("Failed to find authenticated user: %v", err)
-				http.Error(w, "Error validating user", http.StatusUnauthorized)
+				http.Error(w, "Error validating user. Try logging in again...", http.StatusUnauthorized)
 				return
 			}
 			//& Get UserID from token
