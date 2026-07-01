@@ -5,7 +5,6 @@
 package repository
 
 import (
-	"database/sql"
 	"time"
 )
 
@@ -51,17 +50,16 @@ type Product struct {
 type RefreshToken struct {
 	ID           int64     `json:"id"`
 	RefreshToken string    `json:"refresh_token"`
-	UserID       int64     `json:"user_id"`
 	IssuedAt     time.Time `json:"issued_at"`
 	ExpiresAt    time.Time `json:"expires_at"`
+	UserID       int64     `json:"user_id"`
 }
 
 type User struct {
-	UserID         int64         `json:"user_id"`
-	Username       string        `json:"username"`
-	Email          string        `json:"email"`
-	Password       string        `json:"password"`
-	CreatedAt      time.Time     `json:"created_at"`
-	UpdatedAt      time.Time     `json:"updated_at"`
-	RefreshTokenID sql.NullInt64 `json:"refresh_token_id"`
+	UserID    int64     `json:"user_id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	Password  string    `json:"password"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

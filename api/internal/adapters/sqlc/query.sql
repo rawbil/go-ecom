@@ -16,10 +16,6 @@ VALUES (?, ?, ?);
 -- name: DeleteUser :exec
 DELETE FROM users WHERE email = ?;
 
--- name: UpdateUserToken :execresult
-UPDATE users
-SET refresh_token_id = ?
-WHERE user_id = ?;
 
 -- name: UpdatePassword :execresult
 UPDATE users
@@ -35,10 +31,10 @@ UPDATE refresh_tokens
 SET refresh_token = ?,
     issued_at = ?,
     expires_at = ?
-WHERE user_id = ? AND id = ?;
+WHERE user_id = ?;
 
 -- name: GetRefreshToken :one
-SELECT * FROM refresh_tokens
+SELECT refresh_token FROM refresh_tokens
 WHERE user_id = ?;
 
 -- name: DeleteRefreshToken :exec

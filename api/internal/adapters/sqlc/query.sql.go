@@ -121,21 +121,15 @@ func (q *Queries) DeleteUser(ctx context.Context, email string) error {
 }
 
 const getRefreshToken = `-- name: GetRefreshToken :one
-SELECT id, refresh_token, user_id, issued_at, expires_at FROM refresh_tokens
+SELECT refresh_token FROM refresh_tokens
 WHERE user_id = ?
 `
 
-func (q *Queries) GetRefreshToken(ctx context.Context, userID int64) (RefreshToken, error) {
+func (q *Queries) GetRefreshToken(ctx context.Context, userID int64) (string, error) {
 	row := q.db.QueryRowContext(ctx, getRefreshToken, userID)
-	var i RefreshToken
-	err := row.Scan(
-		&i.ID,
-		&i.RefreshToken,
-		&i.UserID,
-		&i.IssuedAt,
-		&i.ExpiresAt,
-	)
-	return i, err
+	var refresh_token string
+	err := row.Scan(&refresh_token)
+	return refresh_token, err
 }
 
 const listOrder = `-- name: ListOrder :one
@@ -286,7 +280,7 @@ func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 }
 
 const listUser = `-- name: ListUser :one
-SELECT user_id, username, email, password, created_at, updated_at, refresh_token_id FROM users WHERE email = ? LIMIT 1
+SELECT user_id, username, email, password, created_at, updated_at FROM users WHERE email = ? LIMIT 1
 `
 
 func (q *Queries) ListUser(ctx context.Context, email string) (User, error) {
@@ -299,13 +293,12 @@ func (q *Queries) ListUser(ctx context.Context, email string) (User, error) {
 		&i.Password,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.RefreshTokenID,
 	)
 	return i, err
 }
 
 const listUserById = `-- name: ListUserById :one
-SELECT user_id, username, email, password, created_at, updated_at, refresh_token_id FROM users WHERE user_id = ? LIMIT 1
+SELECT user_id, username, email, password, created_at, updated_at FROM users WHERE user_id = ? LIMIT 1
 `
 
 func (q *Queries) ListUserById(ctx context.Context, userID int64) (User, error) {
@@ -318,13 +311,12 @@ func (q *Queries) ListUserById(ctx context.Context, userID int64) (User, error) 
 		&i.Password,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.RefreshTokenID,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT user_id, username, email, password, created_at, updated_at, refresh_token_id FROM users
+SELECT user_id, username, email, password, created_at, updated_at FROM users
 ORDER BY created_at
 `
 
@@ -344,7 +336,6 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.Password,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.RefreshTokenID,
 		); err != nil {
 			return nil, err
 		}
@@ -394,7 +385,7 @@ UPDATE refresh_tokens
 SET refresh_token = ?,
     issued_at = ?,
     expires_at = ?
-WHERE user_id = ? AND id = ?
+WHERE user_id = ?
 `
 
 type UpdateRefreshTokenParams struct {
@@ -402,7 +393,6 @@ type UpdateRefreshTokenParams struct {
 	IssuedAt     time.Time `json:"issued_at"`
 	ExpiresAt    time.Time `json:"expires_at"`
 	UserID       int64     `json:"user_id"`
-	ID           int64     `json:"id"`
 }
 
 func (q *Queries) UpdateRefreshToken(ctx context.Context, arg UpdateRefreshTokenParams) (sql.Result, error) {
@@ -411,21 +401,5 @@ func (q *Queries) UpdateRefreshToken(ctx context.Context, arg UpdateRefreshToken
 		arg.IssuedAt,
 		arg.ExpiresAt,
 		arg.UserID,
-		arg.ID,
 	)
-}
-
-const updateUserToken = `-- name: UpdateUserToken :execresult
-UPDATE users
-SET refresh_token_id = ?
-WHERE user_id = ?
-`
-
-type UpdateUserTokenParams struct {
-	RefreshTokenID sql.NullInt64 `json:"refresh_token_id"`
-	UserID         int64         `json:"user_id"`
-}
-
-func (q *Queries) UpdateUserToken(ctx context.Context, arg UpdateUserTokenParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, updateUserToken, arg.RefreshTokenID, arg.UserID)
 }

@@ -75,7 +75,7 @@ func (h *Handler) UserLogin(w http.ResponseWriter, r *http.Request) {
 
 	utils.JsonResponse(w, utils.SuccessMessage{
 		Message: "Login Success!",
-		Data:    map[string]any{"user": user, "token": token, "refresh_token": refreshToken},
+		Data:    map[string]any{"user": user, "access_token": token, "refresh_token": refreshToken},
 	})
 }
 
@@ -123,5 +123,35 @@ func (h *Handler) PasswordReset(w http.ResponseWriter, r *http.Request) {
 
 	utils.JsonResponse(w, utils.SuccessMessage{
 		Message: "Password reset successful",
+	})
+}
+
+// ! REFRESH TOKENS
+func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
+	var param authutils.RefreshTokenParam
+
+	if err := utils.DecodeClient(r, &param); err != nil {
+		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		return
+	}
+
+	authToken, refreshToken, err := h.Service.RefreshTokens(r.Context(), param)
+	if err != nil {
+		if err == AuthNotFound || err == AuthUserNotFound || err == InvalidRefreshToken {
+			utils.ErrorHandler(err, w, http.StatusUnauthorized)
+			return
+		}
+
+		if err == FieldsRequiredError {
+			utils.ErrorHandler(err, w, http.StatusBadRequest)
+			return
+		}
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		return
+	}
+
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: "Success",
+		Data:    map[string]string{"access_token": authToken, "refresh_token": refreshToken},
 	})
 }

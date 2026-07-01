@@ -2,8 +2,10 @@ package auth
 
 import (
 	"context"
+	"crypto/subtle"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
@@ -16,6 +18,7 @@ type Service interface {
 	UserLogin(ctx context.Context, arg authutils.UserLoginParams) (repository.User, string, string, error)
 	LogoutUser(ctx context.Context) error
 	PasswordReset(ctx context.Context, arg authutils.PasswordResetParams) error
+	RefreshTokens(ctx context.Context, arg authutils.RefreshTokenParam) (string, string, error)
 }
 
 type Svc struct {
@@ -41,6 +44,7 @@ var (
 	AuthNotFound          = errors.New("Request User not found. Login again...")
 	AuthUserNotFound      = errors.New("Authenticated User not found. Login again...")
 	SimilarPasswordError  = errors.New("New password should be different from Old password")
+	InvalidRefreshToken   = errors.New("Invalid refresh token. Login again...")
 )
 
 // ! REGISTER
@@ -127,45 +131,15 @@ func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (r
 	}
 
 	// & Hash Refresh Token
-	hashedToken, err := authutils.PasswordHash(refreshToken)
-	if err != nil {
-		return repository.User{}, "", "", err
-	}
+	hashedToken := authutils.RefreshTokenHash(refreshToken)
 
-	// & Save Refresh Token in Database (users and refresh_tokens transaction)
-
-	tx, err := svc.db.Begin()
-	if err != nil {
-		return repository.User{}, "", "", err
-	}
-
-	defer tx.Rollback()
-
-	qtx := svc.repository.WithTx(tx)
-
-	rt, err := qtx.CreateRefreshToken(ctx, repository.CreateRefreshTokenParams{
+	// & Save Refresh Token in Database
+	if _, err := svc.repository.CreateRefreshToken(ctx, repository.CreateRefreshTokenParams{
 		RefreshToken: hashedToken,
 		UserID:       user.UserID,
 		IssuedAt:     issued_at,
 		ExpiresAt:    expired_at,
-	})
-	if err != nil {
-		return repository.User{}, "", "", err
-	}
-
-	rt_id, err := rt.LastInsertId()
-	if err != nil {
-		return repository.User{}, "", "", err
-	}
-
-	if _, err := qtx.UpdateUserToken(ctx, repository.UpdateUserTokenParams{
-		RefreshTokenID: sql.NullInt64{Int64: rt_id, Valid: true},
-		UserID:         user.UserID,
 	}); err != nil {
-		return repository.User{}, "", "", err
-	}
-
-	if err := tx.Commit(); err != nil {
 		return repository.User{}, "", "", err
 	}
 
@@ -186,30 +160,8 @@ func (svc *Svc) LogoutUser(ctx context.Context) error {
 		return AuthUserNotFound
 	}
 
-	//& Delete refresh token
-	tx, err := svc.db.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	qtx := svc.repository.WithTx(tx)
-
 	//& Delete refresh_token
-	if err := qtx.DeleteRefreshToken(ctx, user.UserID); err != nil {
-		return err
-	}
-
-	//& Nullify refresh_token on user
-	if _, err := qtx.UpdateUserToken(ctx, repository.UpdateUserTokenParams{
-		RefreshTokenID: sql.NullInt64{Valid: false},
-		UserID:         user.UserID,
-	}); err != nil {
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
+	if err := svc.repository.DeleteRefreshToken(ctx, user.UserID); err != nil {
 		return err
 	}
 
@@ -268,26 +220,66 @@ func (svc *Svc) PasswordReset(ctx context.Context, arg authutils.PasswordResetPa
 }
 
 // ! Refresh Tokens
-// func (svc *Svc) RefreshTokens(ctx context.Context) (string, string, error) {
-// 	user_id, ok := authutils.GetUserIDFromContext(ctx)
-// 	if !ok {
-// 		return "", "", AuthNotFound
-// 	}
+func (svc *Svc) RefreshTokens(ctx context.Context, arg authutils.RefreshTokenParam) (string, string, error) {
+	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	if !ok {
+		return "", "", AuthNotFound
+	}
 
-// 	//& Ensure user exists
-// 	user, err := svc.repository.ListUserById(ctx, user_id)
-// 	if err != nil {
-// 		return "", "", AuthUserNotFound
-// 	}
+	//& Ensure user exists
+	user, err := svc.repository.ListUserById(ctx, user_id)
+	if err != nil {
+		return "", "", AuthUserNotFound
+	}
 
-// 	//& Find refresh token
-// 	hashed_refresh_token, err := svc.repository.GetRefreshToken(ctx, user.UserID)
-// 	if err != nil {
-// 		return "", "", err
-// 	}
+	//& Validate field
+	if err := authutils.RefreshTokenValidation(arg); err != nil {
+		if authutils.ValidationErrorCheck("required", err) {
+			return "", "", FieldsRequiredError
+		}
+		return "", "", err
+	}
 
-// 	secret = []byte(config.GetJwtConfig().JwtSecret)
+	//& Find refresh token
+	hashed_refresh_token, err := svc.repository.GetRefreshToken(ctx, user.UserID)
+	if err != nil {
+		return "", "", err
+	}
 
-// 	authutils.ComparePasswords()
+	//& Compare refresh tokens
+	client_hashed_token := authutils.RefreshTokenHash(arg.RefreshToken)
 
-// }
+	if subtle.ConstantTimeCompare([]byte(client_hashed_token), []byte(hashed_refresh_token)) != 1 {
+		return "", "", InvalidRefreshToken
+	}
+
+	//& Generate new tokens
+	secret := (config.GetJwtConfig().JwtSecret)
+	if secret == "" {
+		return "", "", fmt.Errorf("Secret Missing")
+	}
+
+	new_refreshToken, issuedAt, expiresAt, err := authutils.GenerateRefreshToken(user.UserID, []byte(secret))
+	if err != nil {
+		return "", "", err
+	}
+
+	new_auth_token, err := authutils.GenerateAuthToken(user.UserID, []byte(secret))
+	if err != nil {
+		return "", "", err
+	}
+
+	new_hashed_token := authutils.RefreshTokenHash(new_refreshToken)
+
+	//& Save new hashed token to DB
+	if _, err := svc.repository.UpdateRefreshToken(ctx, repository.UpdateRefreshTokenParams{
+		RefreshToken: new_hashed_token,
+		IssuedAt:     issuedAt,
+		ExpiresAt:    expiresAt,
+		UserID:       user.UserID,
+	}); err != nil {
+		return "", "", err
+	}
+
+	return new_auth_token, new_hashed_token, nil
+}

@@ -7,12 +7,15 @@ type UserRegisterParams struct {
 }
 
 type UserLoginParams struct {
-	Email string `json:"email" validate:"required,email"`
+	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
 }
-
 
 type PasswordResetParams struct {
 	NewPassword string `json:"new_password" validate:"required,password_format,min=8,max=12"`
 	OldPassword string `json:"old_password" validate:"required"`
+}
+
+type RefreshTokenParam struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
 }

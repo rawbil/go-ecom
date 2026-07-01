@@ -64,6 +64,8 @@ func (app *Application) Mount() http.Handler {
 			r.With(authutils.AuthMiddleware(*repo)).Post("/logout", authHandler.UserLogout)
 			//?POST /auth/password-reset
 			r.With(authutils.AuthMiddleware(*repo)).Post("/password-reset", authHandler.PasswordReset)
+			//? POST /auth/refresh-tokens
+			r.With(authutils.AuthMiddleware(*repo)).Post("/refresh-tokens", authHandler.RefreshTokens)
 		})
 
 		//& Group protected routes to apply auth middleware
