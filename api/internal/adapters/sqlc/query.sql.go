@@ -121,15 +121,21 @@ func (q *Queries) DeleteUser(ctx context.Context, email string) error {
 }
 
 const getRefreshToken = `-- name: GetRefreshToken :one
-SELECT refresh_token FROM refresh_tokens
+SELECT id, refresh_token, issued_at, expires_at, user_id FROM refresh_tokens
 WHERE user_id = ?
 `
 
-func (q *Queries) GetRefreshToken(ctx context.Context, userID int64) (string, error) {
+func (q *Queries) GetRefreshToken(ctx context.Context, userID int64) (RefreshToken, error) {
 	row := q.db.QueryRowContext(ctx, getRefreshToken, userID)
-	var refresh_token string
-	err := row.Scan(&refresh_token)
-	return refresh_token, err
+	var i RefreshToken
+	err := row.Scan(
+		&i.ID,
+		&i.RefreshToken,
+		&i.IssuedAt,
+		&i.ExpiresAt,
+		&i.UserID,
+	)
+	return i, err
 }
 
 const listOrder = `-- name: ListOrder :one

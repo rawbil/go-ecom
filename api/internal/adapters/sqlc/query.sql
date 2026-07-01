@@ -34,7 +34,7 @@ SET refresh_token = ?,
 WHERE user_id = ?;
 
 -- name: GetRefreshToken :one
-SELECT refresh_token FROM refresh_tokens
+SELECT * FROM refresh_tokens
 WHERE user_id = ?;
 
 -- name: DeleteRefreshToken :exec

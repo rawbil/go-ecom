@@ -85,7 +85,7 @@ func AuthMiddleware(repository repository.Queries) Middleware {
 
 			//& Validate token
 
-			claims, err := validateToken(tokenString)
+			claims, err := ValidateToken(tokenString)
 			if err != nil {
 				log.Printf("Failed to validate token: %v", err)
 				http.Error(w, "Error validating user", http.StatusUnauthorized)
@@ -113,7 +113,7 @@ func AuthMiddleware(repository repository.Queries) Middleware {
 }
 
 // * Validate Token
-func validateToken(tokenString string) (*Claims, error) {
+func ValidateToken(tokenString string) (*Claims, error) {
 	claims := &Claims{}
 
 	token, err := jwt.ParseWithClaims(

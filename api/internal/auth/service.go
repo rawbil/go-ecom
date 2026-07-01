@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
@@ -45,6 +46,7 @@ var (
 	AuthUserNotFound      = errors.New("Authenticated User not found. Login again...")
 	SimilarPasswordError  = errors.New("New password should be different from Old password")
 	InvalidRefreshToken   = errors.New("Invalid refresh token. Login again...")
+	TokenExpiredError     = errors.New("Refresh token expired. Login again...")
 )
 
 // ! REGISTER
@@ -246,11 +248,27 @@ func (svc *Svc) RefreshTokens(ctx context.Context, arg authutils.RefreshTokenPar
 		return "", "", err
 	}
 
+	//& Validate refresh token
+	claims, err := authutils.ValidateToken(arg.RefreshToken)
+	if err != nil {
+		return "", "", InvalidRefreshToken
+	}
+
+	//& Find user using claim
+	if _, err := svc.repository.ListUserById(ctx, claims.UserID); err != nil {
+		return "", "", AuthUserNotFound
+	}
+
 	//& Compare refresh tokens
 	client_hashed_token := authutils.RefreshTokenHash(arg.RefreshToken)
 
-	if subtle.ConstantTimeCompare([]byte(client_hashed_token), []byte(hashed_refresh_token)) != 1 {
+	if subtle.ConstantTimeCompare([]byte(client_hashed_token), []byte(hashed_refresh_token.RefreshToken)) != 1 {
 		return "", "", InvalidRefreshToken
+	}
+
+	//& Check token expiry
+	if time.Now().After(hashed_refresh_token.ExpiresAt) {
+		return "", "", TokenExpiredError
 	}
 
 	//& Generate new tokens

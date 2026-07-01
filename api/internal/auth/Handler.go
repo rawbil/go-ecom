@@ -137,7 +137,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 
 	authToken, refreshToken, err := h.Service.RefreshTokens(r.Context(), param)
 	if err != nil {
-		if err == AuthNotFound || err == AuthUserNotFound || err == InvalidRefreshToken {
+		if err == AuthNotFound || err == AuthUserNotFound || err == InvalidRefreshToken || err == TokenExpiredError {
 			utils.ErrorHandler(err, w, http.StatusUnauthorized)
 			return
 		}
