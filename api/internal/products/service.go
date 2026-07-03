@@ -10,13 +10,21 @@ import (
 
 type Service interface {
 	CreateProduct(ctx context.Context, params repository.CreateProductParams) (sql.Result, error)
-	ListProducts(ctx context.Context) (products []repository.Product, err error)
+	ListProducts(ctx context.Context, filters ListProductsFilter) (products []repository.Product, err error)
 	ListProduct(ctx context.Context, id int64) (product repository.Product, err error)
 	DeleteProduct(ctx context.Context, id int64) error
 }
 
 type Svc struct {
 	repository repository.Queries
+}
+
+type ListProductsFilter struct {
+	Limit    int
+	Offset   int
+	Name     string
+	MinPrice int
+	MaxPrice int
 }
 
 func NewService(repository repository.Queries) Service {
@@ -39,7 +47,7 @@ func (svc *Svc) CreateProduct(ctx context.Context, params repository.CreateProdu
 	return svc.repository.CreateProduct(ctx, params)
 }
 
-func (svc *Svc) ListProducts(ctx context.Context) (products []repository.Product, err error) {
+func (svc *Svc) ListProducts(ctx context.Context, filters ListProductsFilter) (products []repository.Product, err error) {
 	return svc.repository.ListProducts(ctx)
 }
 

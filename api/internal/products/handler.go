@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	"github.com/rawbil/ecom2/internal/utils"
@@ -42,7 +43,32 @@ func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 // ! ListProducts
 func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := h.service.ListProducts(r.Context())
+	query := r.URL.Query()
+
+	page, _ := strconv.Atoi(query.Get("page"))
+	limit, _ := strconv.Atoi(query.Get("limit"))
+
+	product_name := query.Get("name")
+	minPrice, _ := strconv.Atoi(query.Get("min_price"))
+	maxPrice, _ := strconv.Atoi(query.Get("max_price"))
+
+	if page < 1 {
+		page = 1
+	}
+
+	if limit < 1 {
+		limit = 10
+	}
+
+	offset := limit * (page - 1)
+
+	products, err := h.service.ListProducts(r.Context(), ListProductsFilter{
+		Limit: limit,
+		Offset: offset,
+		Name: product_name,
+		MinPrice: minPrice,
+		MaxPrice: maxPrice,
+	})
 	if err != nil {
 		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 		return
