@@ -2,7 +2,9 @@ package users
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strconv"
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	"github.com/rawbil/ecom2/internal/utils"
@@ -24,9 +26,43 @@ func NewHandler(service Service) *Handler {
 
 // ! GET All Users
 func (h *Handler) ListAllUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := h.service.ListAllUsers(r.Context())
+	query := r.URL.Query()
+
+	// Pagination
+	page := query.Get("page")
+	limit := query.Get("limit")
+
+	// Filters
+	username := query.Get("username")
+	email := query.Get("email")
+	role := query.Get("role")
+
+	pageInt, err := strconv.Atoi(page)
+	if err != nil || pageInt < 1 {
+		pageInt = 1
+	}
+
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil || limitInt < 1 || limitInt > 30 {
+		limitInt = 10
+	}
+
+	offset := (pageInt - 1) * limitInt
+
+	users, err := h.service.ListAllUsers(r.Context(), repository.ListUsersParams{
+		Limit:    int32(limitInt),
+		Offset:   int32(offset),
+		Username: username,
+		Email:    email,
+		Role:     role,
+	})
 	if err != nil {
 		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		return
+	}
+
+	if len(users) < 1 {
+		utils.ErrorHandler(errors.New("No user found"), w, http.StatusNotFound)
 		return
 	}
 

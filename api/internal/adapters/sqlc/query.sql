@@ -1,7 +1,14 @@
 
 -- name: ListUsers :many
 SELECT * FROM users
-ORDER BY created_at;
+WHERE (
+    (sqlc.arg(username) = '' OR username LIKE CONCAT('%', sqlc.arg(username),'%')) 
+    AND (sqlc.arg(email) = '' OR email LIKE CONCAT('%', sqlc.arg(email), '%')) 
+    AND (sqlc.arg(role) OR role LIKE CONCAT('%', sqlc.arg(role), '%'))
+)
+ORDER BY updated_at
+LIMIT ?
+OFFSET ?;
 
 -- name: ListUser :one
 SELECT * FROM users WHERE email = ? LIMIT 1;

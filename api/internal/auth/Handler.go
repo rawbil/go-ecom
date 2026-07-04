@@ -22,7 +22,12 @@ func NewHandler(service Service) *Handler {
 // ! REGISTER
 func (h *Handler) UserRegister(w http.ResponseWriter, r *http.Request) {
 	var registerParams repository.CreateUserParams
-	json.NewDecoder(r.Body).Decode(&registerParams)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&registerParams); err != nil {
+		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		return
+	}
 
 	_, err := h.Service.UserRegister(r.Context(), registerParams)
 	if err != nil {
@@ -55,7 +60,12 @@ func (h *Handler) UserRegister(w http.ResponseWriter, r *http.Request) {
 // ! LOGIN
 func (h *Handler) UserLogin(w http.ResponseWriter, r *http.Request) {
 	var params authutils.UserLoginParams
-	json.NewDecoder(r.Body).Decode(&params)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&params); err != nil {
+		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		return
+	}
 
 	user, token, refreshToken, err := h.Service.UserLogin(r.Context(), params)
 	if err != nil {

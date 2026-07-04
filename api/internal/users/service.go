@@ -8,7 +8,7 @@ import (
 )
 
 type Service interface {
-	ListAllUsers(ctx context.Context) (users []repository.User, err error)
+	ListAllUsers(ctx context.Context, arg repository.ListUsersParams) (users []repository.User, err error)
 	ListUser(ctx context.Context, email string) (user repository.User, err error)
 	CreateUser(ctx context.Context, params repository.CreateUserParams) (result sql.Result, err error)
 	DeleteUser(ctx context.Context, email string) error
@@ -24,8 +24,8 @@ func NewService(repository repository.Queries) Service {
 	}
 }
 
-func (svc *Svc) ListAllUsers(ctx context.Context) (users []repository.User, err error) {
-	return svc.repository.ListUsers(ctx)
+func (svc *Svc) ListAllUsers(ctx context.Context, arg repository.ListUsersParams) (users []repository.User, err error) {
+	return svc.repository.ListUsers(ctx, arg)
 }
 
 func (svc *Svc) ListUser(ctx context.Context, email string) (user repository.User, err error) {

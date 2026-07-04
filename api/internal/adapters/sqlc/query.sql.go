@@ -349,11 +349,35 @@ func (q *Queries) ListUserById(ctx context.Context, userID int64) (User, error) 
 
 const listUsers = `-- name: ListUsers :many
 SELECT user_id, username, email, password, created_at, updated_at, role FROM users
-ORDER BY created_at
+WHERE (
+    (? = '' OR username LIKE CONCAT('%', ?,'%')) 
+    AND (? = '' OR email LIKE CONCAT('%', ?, '%')) 
+    AND (? OR role LIKE CONCAT('%', ?, '%'))
+)
+ORDER BY updated_at
+LIMIT ?
+OFFSET ?
 `
 
-func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
-	rows, err := q.db.QueryContext(ctx, listUsers)
+type ListUsersParams struct {
+	Username interface{} `json:"username"`
+	Email    interface{} `json:"email"`
+	Role     interface{} `json:"role"`
+	Limit    int32       `json:"limit"`
+	Offset   int32       `json:"offset"`
+}
+
+func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, listUsers,
+		arg.Username,
+		arg.Username,
+		arg.Email,
+		arg.Email,
+		arg.Role,
+		arg.Role,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
