@@ -59,11 +59,14 @@ func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	product_name := query.Get("name")
-	minPrice, err := strconv.Atoi(query.Get("min_price"))
+	min_price := query.Get("min_price")
+	max_price := query.Get("max_price")
+
+	minPrice, err := strconv.Atoi(min_price)
 	if err != nil || minPrice < 1 {
 		minPrice = 0
 	}
-	maxPrice, err := strconv.Atoi(query.Get("max_price"))
+	maxPrice, err := strconv.Atoi(max_price)
 	if err != nil || maxPrice < 1 {
 		maxPrice = 0
 	}
@@ -71,11 +74,11 @@ func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	offset := limitInt * (pageInt - 1)
 
 	products, err := h.service.ListProducts(r.Context(), repository.ListProductsParams{
-		Name:     product_name,
+		Name: product_name,
 		MinPrice: int64(minPrice),
 		MaxPrice: int64(maxPrice),
-		Limit:    int32(limitInt),
-		Offset:   int32(offset),
+		Limit:  int32(limitInt),
+		Offset: int32(offset),
 	})
 	if err != nil {
 		utils.ErrorHandler(err, w, http.StatusInternalServerError)

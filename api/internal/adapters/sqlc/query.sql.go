@@ -93,10 +93,22 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Res
 }
 
 const deleteProduct = `-- name: DeleteProduct :exec
+
 DELETE FROM products
 WHERE product_id = ?
 `
 
+// SELECT *
+// FROM products
+// WHERE
+//
+//	(sqlc.arg(name) = '' OR product_name LIKE CONCAT('%', sqlc.arg(name), '%'))
+//	AND (sqlc.arg(min_price) = 0 OR price >= sqlc.arg(min_price))
+//	AND (sqlc.arg(max_price) = 0 OR price <= sqlc.arg(max_price))
+//
+// ORDER BY updated_at DESC
+// LIMIT ?
+// OFFSET ?;
 func (q *Queries) DeleteProduct(ctx context.Context, productID int64) error {
 	_, err := q.db.ExecContext(ctx, deleteProduct, productID)
 	return err
@@ -251,13 +263,13 @@ func (q *Queries) ListProduct(ctx context.Context, productID int64) (Product, er
 }
 
 const listProducts = `-- name: ListProducts :many
-SELECT product_id, product_name, price, quantity, created_at, updated_at
-FROM products
-WHERE
-    (? = '' OR product_name LIKE CONCAT('%', ?, '%'))
-    AND (? = 0 OR price >= ?)
-    AND (? = 0 OR price <= ?)
-ORDER BY updated_at DESC
+SELECT product_id, product_name, price, quantity, created_at, updated_at FROM products
+WHERE (
+    (? = '' OR product_name LIKE CONCAT('%', ?, '%')) AND
+    (? = 0 OR price >= ?) AND
+    (? = 0 OR price <= ?)
+)
+ORDER BY updated_at
 LIMIT ?
 OFFSET ?
 `

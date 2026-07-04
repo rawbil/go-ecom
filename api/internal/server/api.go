@@ -86,9 +86,9 @@ func (app *Application) Mount() http.Handler {
 
 			// ! /api/v1/products
 			r.Route("/products", func(r chi.Router) {
-				//? GET /products/list
-				r.Get("/list", productsHandler.ListProducts)
-				//? GET /products/one
+				//? GET /products
+				r.Get("/", productsHandler.ListProducts)
+				//? GET /products/id
 				r.Get("/id", productsHandler.ListProduct)
 				//? POST /products
 				r.Post("/", productsHandler.CreateProduct)

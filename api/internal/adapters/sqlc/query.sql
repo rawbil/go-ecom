@@ -6,7 +6,7 @@ WHERE (
     AND (sqlc.arg(email) = '' OR email LIKE CONCAT('%', sqlc.arg(email), '%')) 
     AND (sqlc.arg(role) OR role LIKE CONCAT('%', sqlc.arg(role), '%'))
 )
-ORDER BY updated_at
+ORDER BY updated_at DESC
 LIMIT ?
 OFFSET ?;
 
@@ -56,12 +56,12 @@ VALUES (?, ?, ?);
 SELECT * FROM products WHERE product_id = ? LIMIT 1;
 
 -- name: ListProducts :many
-SELECT *
-FROM products
-WHERE
-    (sqlc.arg(name) = '' OR product_name LIKE CONCAT('%', sqlc.arg(name), '%'))
-    AND (sqlc.arg(min_price) = 0 OR price >= sqlc.arg(min_price))
-    AND (sqlc.arg(max_price) = 0 OR price <= sqlc.arg(max_price))
+SELECT * FROM products
+WHERE (
+    (sqlc.arg(name) = '' OR product_name LIKE CONCAT('%', sqlc.arg(name), '%')) AND
+    (sqlc.arg(min_price) = 0 OR price >= sqlc.arg(min_price)) AND
+    (sqlc.arg(max_price) = 0 OR price <= sqlc.arg(max_price))
+)
 ORDER BY updated_at DESC
 LIMIT ?
 OFFSET ?;
