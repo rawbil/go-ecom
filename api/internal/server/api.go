@@ -94,10 +94,18 @@ func (app *Application) Mount() http.Handler {
 				r.Post("/", productsHandler.CreateProduct)
 				//? DELETE /products
 				r.Delete("/delete", productsHandler.DeleteProduct)
+				//? PATCH /products
+				r.Patch("/", productsHandler.UpdateProduct)
 			})
 
+			//! /api/v1/orders
 			r.Route("/orders", func(r chi.Router) {
+				//? POST /orders
 				r.Post("/", orderHandler.CreateOrder)
+				//? GET /orders/my-orders
+				r.Get("/my-orders", orderHandler.GetMyOrder)
+				//? GET /orders/all
+				r.Get("/all", orderHandler.GetAllOrders)
 			})
 		})
 

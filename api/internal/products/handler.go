@@ -74,11 +74,11 @@ func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	offset := limitInt * (pageInt - 1)
 
 	products, err := h.service.ListProducts(r.Context(), repository.ListProductsParams{
-		Name: product_name,
+		Name:     product_name,
 		MinPrice: int64(minPrice),
 		MaxPrice: int64(maxPrice),
-		Limit:  int32(limitInt),
-		Offset: int32(offset),
+		Limit:    int32(limitInt),
+		Offset:   int32(offset),
 	})
 	if err != nil {
 		utils.ErrorHandler(err, w, http.StatusInternalServerError)
@@ -127,4 +127,31 @@ func (h *Handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "%s deleted successfully!!", product.ProductName)
+}
+
+// ! UpdateProduct
+func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
+	var params repository.UpdateProductParams
+
+	if err := utils.DecodeClient(r, &params); err != nil {
+		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		return
+	}
+	if _, err := h.service.UpdateProduct(r.Context(), params); err != nil {
+		if err == MinError || err == OneFieldRequired {
+			utils.ErrorHandler(err, w, http.StatusBadRequest)
+			return
+		}
+
+		if err == productNotFoundError {
+			utils.ErrorHandler(err, w, http.StatusNotFound)
+			return
+		}
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		return
+	}
+
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: "Product Updated successfully",
+	})
 }

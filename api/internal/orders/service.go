@@ -7,10 +7,13 @@ import (
 	"fmt"
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
+	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
 )
 
 type Service interface {
 	CreateOrder(ctx context.Context, params CreateOrderParams) (repository.Order, error)
+	GetMyOrder(ctx context.Context) ([]repository.IdUserOrderDetailsRow, error)
+	GetAllOrders(ctx context.Context) ([]repository.AllUsersOrderDetailsRow, error)
 }
 
 type Svc struct {
@@ -21,6 +24,7 @@ type Svc struct {
 var (
 	NotFoundError  = errors.New("Product Not Found")
 	ProductNoStock = errors.New("The quantity selected is more than the stock available")
+	AuthNotFound   = errors.New("Authentication context missing")
 )
 
 func NewService(repository repository.Queries, db *sql.DB) Service {
@@ -30,6 +34,7 @@ func NewService(repository repository.Queries, db *sql.DB) Service {
 	}
 }
 
+// ! CREATE ORDER
 func (svc *Svc) CreateOrder(ctx context.Context, params CreateOrderParams) (result repository.Order, err error) {
 	if params.UserID == 0 {
 		return repository.Order{}, fmt.Errorf("User id not found")
@@ -108,3 +113,20 @@ func (svc *Svc) CreateOrder(ctx context.Context, params CreateOrderParams) (resu
 
 	return createdOrder, nil
 }
+
+// ! GET MY ORDER
+func (svc *Svc) GetMyOrder(ctx context.Context) ([]repository.IdUserOrderDetailsRow, error) {
+	//& Ensure authenticated user exists from context
+	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	if !ok {
+		return []repository.IdUserOrderDetailsRow{}, AuthNotFound
+	}
+	return svc.repository.IdUserOrderDetails(ctx, user_id)
+}
+
+// ! GET ALL ORDERS (ADMIN)
+func (svc *Svc) GetAllOrders(ctx context.Context) ([]repository.AllUsersOrderDetailsRow, error) {
+	return svc.repository.AllUsersOrderDetails(ctx)
+}
+
+// ! CANCEL ORDER

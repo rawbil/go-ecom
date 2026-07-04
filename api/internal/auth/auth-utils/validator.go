@@ -49,6 +49,14 @@ func RefreshTokenValidation(arg RefreshTokenParam) error {
 	return validate.Struct(arg)
 }
 
+func UpdateProductValidation(arg repository.UpdateProductParams) error {
+	return validate.Struct(UpdateProductParams{
+		ProductId: arg.ProductID,
+		Price:     arg.Price,
+		Quantity:  arg.Quantity,
+	})
+}
+
 func ValidationErrorCheck(tag string, err error) bool {
 	var validationErrors validator.ValidationErrors
 	if !errors.As(err, &validationErrors) {

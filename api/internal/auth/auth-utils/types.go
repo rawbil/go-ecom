@@ -19,3 +19,9 @@ type PasswordResetParams struct {
 type RefreshTokenParam struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
+
+type UpdateProductParams struct {
+	ProductId int64 `json:"product_id" validate:"required"`
+	Price     int64 `json:"price" validate:"min=0"`
+	Quantity  int32 `json:"quantity" validate:"min=0"`
+}

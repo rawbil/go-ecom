@@ -11,6 +11,60 @@ import (
 	"time"
 )
 
+const allUsersOrderDetails = `-- name: AllUsersOrderDetails :many
+SELECT orders.order_id, orders.created_at, order_items.total_price, order_items.quantity AS order_quantity, product_name, products.price AS product_price, products.quantity AS available_products, username, email FROM orders
+INNER JOIN order_items
+INNER JOIN products
+INNER JOIN users
+WHERE orders.order_id = order_items.order_id AND order_items.product_id = products.product_id AND orders.user_id = users.user_id
+ORDER BY orders.created_at DESC
+`
+
+type AllUsersOrderDetailsRow struct {
+	OrderID           int64     `json:"order_id"`
+	CreatedAt         time.Time `json:"created_at"`
+	TotalPrice        int64     `json:"total_price"`
+	OrderQuantity     int32     `json:"order_quantity"`
+	ProductName       string    `json:"product_name"`
+	ProductPrice      int64     `json:"product_price"`
+	AvailableProducts int32     `json:"available_products"`
+	Username          string    `json:"username"`
+	Email             string    `json:"email"`
+}
+
+func (q *Queries) AllUsersOrderDetails(ctx context.Context) ([]AllUsersOrderDetailsRow, error) {
+	rows, err := q.db.QueryContext(ctx, allUsersOrderDetails)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AllUsersOrderDetailsRow
+	for rows.Next() {
+		var i AllUsersOrderDetailsRow
+		if err := rows.Scan(
+			&i.OrderID,
+			&i.CreatedAt,
+			&i.TotalPrice,
+			&i.OrderQuantity,
+			&i.ProductName,
+			&i.ProductPrice,
+			&i.AvailableProducts,
+			&i.Username,
+			&i.Email,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createOrder = `-- name: CreateOrder :execresult
 INSERT INTO orders(user_id)
 VALUES (?)
@@ -93,22 +147,10 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Res
 }
 
 const deleteProduct = `-- name: DeleteProduct :exec
-
 DELETE FROM products
 WHERE product_id = ?
 `
 
-// SELECT *
-// FROM products
-// WHERE
-//
-//	(sqlc.arg(name) = '' OR product_name LIKE CONCAT('%', sqlc.arg(name), '%'))
-//	AND (sqlc.arg(min_price) = 0 OR price >= sqlc.arg(min_price))
-//	AND (sqlc.arg(max_price) = 0 OR price <= sqlc.arg(max_price))
-//
-// ORDER BY updated_at DESC
-// LIMIT ?
-// OFFSET ?;
 func (q *Queries) DeleteProduct(ctx context.Context, productID int64) error {
 	_, err := q.db.ExecContext(ctx, deleteProduct, productID)
 	return err
@@ -148,6 +190,60 @@ func (q *Queries) GetRefreshToken(ctx context.Context, userID int64) (RefreshTok
 		&i.UserID,
 	)
 	return i, err
+}
+
+const idUserOrderDetails = `-- name: IdUserOrderDetails :many
+SELECT orders.order_id, orders.created_at, order_items.total_price, order_items.quantity AS order_quantity, product_name, products.price AS product_price, products.quantity AS available_products, username, email FROM orders
+INNER JOIN order_items
+INNER JOIN products
+INNER JOIN users
+WHERE orders.order_id = order_items.order_id AND order_items.product_id = products.product_id AND orders.user_id = users.user_id AND users.user_id = ?
+ORDER BY orders.created_at
+`
+
+type IdUserOrderDetailsRow struct {
+	OrderID           int64     `json:"order_id"`
+	CreatedAt         time.Time `json:"created_at"`
+	TotalPrice        int64     `json:"total_price"`
+	OrderQuantity     int32     `json:"order_quantity"`
+	ProductName       string    `json:"product_name"`
+	ProductPrice      int64     `json:"product_price"`
+	AvailableProducts int32     `json:"available_products"`
+	Username          string    `json:"username"`
+	Email             string    `json:"email"`
+}
+
+func (q *Queries) IdUserOrderDetails(ctx context.Context, userID int64) ([]IdUserOrderDetailsRow, error) {
+	rows, err := q.db.QueryContext(ctx, idUserOrderDetails, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []IdUserOrderDetailsRow
+	for rows.Next() {
+		var i IdUserOrderDetailsRow
+		if err := rows.Scan(
+			&i.OrderID,
+			&i.CreatedAt,
+			&i.TotalPrice,
+			&i.OrderQuantity,
+			&i.ProductName,
+			&i.ProductPrice,
+			&i.AvailableProducts,
+			&i.Username,
+			&i.Email,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listOrder = `-- name: ListOrder :one
@@ -269,7 +365,7 @@ WHERE (
     (? = 0 OR price >= ?) AND
     (? = 0 OR price <= ?)
 )
-ORDER BY updated_at
+ORDER BY updated_at DESC
 LIMIT ?
 OFFSET ?
 `
@@ -366,7 +462,7 @@ WHERE (
     AND (? = '' OR email LIKE CONCAT('%', ?, '%')) 
     AND (? OR role LIKE CONCAT('%', ?, '%'))
 )
-ORDER BY updated_at
+ORDER BY updated_at DESC
 LIMIT ?
 OFFSET ?
 `
@@ -432,6 +528,23 @@ type UpdatePasswordParams struct {
 
 func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, updatePassword, arg.Password, arg.UserID)
+}
+
+const updateProduct = `-- name: UpdateProduct :execresult
+UPDATE products
+SET price = ?,
+    quantity = ?
+WHERE product_id = ?
+`
+
+type UpdateProductParams struct {
+	Price     int64 `json:"price"`
+	Quantity  int32 `json:"quantity"`
+	ProductID int64 `json:"product_id"`
+}
+
+func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateProduct, arg.Price, arg.Quantity, arg.ProductID)
 }
 
 const updateProductQuantity = `-- name: UpdateProductQuantity :execresult
