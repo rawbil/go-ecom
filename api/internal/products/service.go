@@ -10,7 +10,7 @@ import (
 
 type Service interface {
 	CreateProduct(ctx context.Context, params repository.CreateProductParams) (sql.Result, error)
-	ListProducts(ctx context.Context, filters ListProductsFilter) (products []repository.Product, err error)
+	ListProducts(ctx context.Context, arg repository.ListProductsParams) (products []repository.Product, err error)
 	ListProduct(ctx context.Context, id int64) (product repository.Product, err error)
 	DeleteProduct(ctx context.Context, id int64) error
 }
@@ -47,8 +47,8 @@ func (svc *Svc) CreateProduct(ctx context.Context, params repository.CreateProdu
 	return svc.repository.CreateProduct(ctx, params)
 }
 
-func (svc *Svc) ListProducts(ctx context.Context, filters ListProductsFilter) (products []repository.Product, err error) {
-	return svc.repository.ListProducts(ctx)
+func (svc *Svc) ListProducts(ctx context.Context, arg repository.ListProductsParams) (products []repository.Product, err error) {
+	return svc.repository.ListProducts(ctx, arg)
 }
 
 func (svc *Svc) ListProduct(ctx context.Context, id int64) (product repository.Product, err error) {

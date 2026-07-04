@@ -251,12 +251,36 @@ func (q *Queries) ListProduct(ctx context.Context, productID int64) (Product, er
 }
 
 const listProducts = `-- name: ListProducts :many
-SELECT product_id, product_name, price, quantity, created_at, updated_at FROM products 
-ORDER BY updated_at
+SELECT product_id, product_name, price, quantity, created_at, updated_at
+FROM products
+WHERE
+    (? = '' OR product_name LIKE CONCAT('%', ?, '%'))
+    AND (? = 0 OR price >= ?)
+    AND (? = 0 OR price <= ?)
+ORDER BY updated_at DESC
+LIMIT ?
+OFFSET ?
 `
 
-func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
-	rows, err := q.db.QueryContext(ctx, listProducts)
+type ListProductsParams struct {
+	Name     interface{} `json:"name"`
+	MinPrice int64       `json:"min_price"`
+	MaxPrice int64       `json:"max_price"`
+	Limit    int32       `json:"limit"`
+	Offset   int32       `json:"offset"`
+}
+
+func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error) {
+	rows, err := q.db.QueryContext(ctx, listProducts,
+		arg.Name,
+		arg.Name,
+		arg.MinPrice,
+		arg.MinPrice,
+		arg.MaxPrice,
+		arg.MaxPrice,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +310,7 @@ func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 }
 
 const listUser = `-- name: ListUser :one
-SELECT user_id, username, email, password, created_at, updated_at FROM users WHERE email = ? LIMIT 1
+SELECT user_id, username, email, password, created_at, updated_at, role FROM users WHERE email = ? LIMIT 1
 `
 
 func (q *Queries) ListUser(ctx context.Context, email string) (User, error) {
@@ -299,12 +323,13 @@ func (q *Queries) ListUser(ctx context.Context, email string) (User, error) {
 		&i.Password,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Role,
 	)
 	return i, err
 }
 
 const listUserById = `-- name: ListUserById :one
-SELECT user_id, username, email, password, created_at, updated_at FROM users WHERE user_id = ? LIMIT 1
+SELECT user_id, username, email, password, created_at, updated_at, role FROM users WHERE user_id = ? LIMIT 1
 `
 
 func (q *Queries) ListUserById(ctx context.Context, userID int64) (User, error) {
@@ -317,12 +342,13 @@ func (q *Queries) ListUserById(ctx context.Context, userID int64) (User, error) 
 		&i.Password,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Role,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT user_id, username, email, password, created_at, updated_at FROM users
+SELECT user_id, username, email, password, created_at, updated_at, role FROM users
 ORDER BY created_at
 `
 
@@ -342,6 +368,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.Password,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Role,
 		); err != nil {
 			return nil, err
 		}

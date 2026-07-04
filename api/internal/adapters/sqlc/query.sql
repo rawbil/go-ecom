@@ -49,8 +49,15 @@ VALUES (?, ?, ?);
 SELECT * FROM products WHERE product_id = ? LIMIT 1;
 
 -- name: ListProducts :many
-SELECT * FROM products 
-ORDER BY updated_at;
+SELECT *
+FROM products
+WHERE
+    (sqlc.arg(name) = '' OR product_name LIKE CONCAT('%', sqlc.arg(name), '%'))
+    AND (sqlc.arg(min_price) = 0 OR price >= sqlc.arg(min_price))
+    AND (sqlc.arg(max_price) = 0 OR price <= sqlc.arg(max_price))
+ORDER BY updated_at DESC
+LIMIT ?
+OFFSET ?;
 
 -- name: DeleteProduct :exec
 DELETE FROM products

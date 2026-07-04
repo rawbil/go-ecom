@@ -43,31 +43,39 @@ func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 // ! ListProducts
 func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
+	// Get query from request
 	query := r.URL.Query()
 
-	page, _ := strconv.Atoi(query.Get("page"))
-	limit, _ := strconv.Atoi(query.Get("limit"))
+	page := query.Get("page")
+	limit := query.Get("limit")
+
+	pageInt, err := strconv.Atoi(page)
+	if err != nil || pageInt < 1 {
+		pageInt = 1
+	}
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil || limitInt < 1 || limitInt > 30 {
+		pageInt = 1
+	}
 
 	product_name := query.Get("name")
-	minPrice, _ := strconv.Atoi(query.Get("min_price"))
-	maxPrice, _ := strconv.Atoi(query.Get("max_price"))
-
-	if page < 1 {
-		page = 1
+	minPrice, err := strconv.Atoi(query.Get("min_price"))
+	if err != nil || minPrice < 1 {
+		minPrice = 0
+	}
+	maxPrice, err := strconv.Atoi(query.Get("max_price"))
+	if err != nil || maxPrice < 1 {
+		maxPrice = 0
 	}
 
-	if limit < 1 {
-		limit = 10
-	}
+	offset := limitInt * (pageInt - 1)
 
-	offset := limit * (page - 1)
-
-	products, err := h.service.ListProducts(r.Context(), ListProductsFilter{
-		Limit: limit,
-		Offset: offset,
-		Name: product_name,
-		MinPrice: minPrice,
-		MaxPrice: maxPrice,
+	products, err := h.service.ListProducts(r.Context(), repository.ListProductsParams{
+		Name:     product_name,
+		MinPrice: int64(minPrice),
+		MaxPrice: int64(maxPrice),
+		Limit:    int32(limitInt),
+		Offset:   int32(offset),
 	})
 	if err != nil {
 		utils.ErrorHandler(err, w, http.StatusInternalServerError)
