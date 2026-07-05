@@ -89,3 +89,28 @@ func (h *Handler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 		Data:    map[string]any{"orders": order_details},
 	})
 }
+
+// ! CancelOrder
+func (h *Handler) CancleOrder(w http.ResponseWriter, r *http.Request) {
+	type Body struct {
+		OrderID int64 `json:"order_id"`
+	}
+	var body Body
+	if err := utils.DecodeClient(r, &body); err != nil {
+		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		return
+	}
+
+	if _, err := h.service.CancelOrder(r.Context(), body.OrderID); err != nil {
+		if err == AuthNotFound {
+			utils.ErrorHandler(err, w, http.StatusUnauthorized)
+			return
+		}
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		return
+	}
+
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: "order cancelled",
+	})
+}

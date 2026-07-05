@@ -75,7 +75,7 @@ func (app *Application) Mount() http.Handler {
 			// ! /api/v1/users
 			r.Route("/users", func(r chi.Router) {
 				//? GET /users/find-one
-				r.Get("/id", usersHandler.ListUser)
+				r.Get("/one", usersHandler.ListUser)
 				//? GET /users/find-all
 				r.Get("/", usersHandler.ListAllUsers)
 				//? POST /users/create
@@ -106,6 +106,8 @@ func (app *Application) Mount() http.Handler {
 				r.Get("/my-orders", orderHandler.GetMyOrder)
 				//? GET /orders/all
 				r.Get("/all", orderHandler.GetAllOrders)
+				//? POST /orders/id
+				r.Post("/cancel", orderHandler.CancleOrder)
 			})
 		})
 

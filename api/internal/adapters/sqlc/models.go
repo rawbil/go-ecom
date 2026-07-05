@@ -5,8 +5,53 @@
 package repository
 
 import (
+	"database/sql/driver"
+	"fmt"
 	"time"
 )
+
+type OrdersOrderStatus string
+
+const (
+	OrdersOrderStatusPending   OrdersOrderStatus = "pending"
+	OrdersOrderStatusChecked   OrdersOrderStatus = "checked"
+	OrdersOrderStatusCancelled OrdersOrderStatus = "cancelled"
+)
+
+func (e *OrdersOrderStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = OrdersOrderStatus(s)
+	case string:
+		*e = OrdersOrderStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for OrdersOrderStatus: %T", src)
+	}
+	return nil
+}
+
+type NullOrdersOrderStatus struct {
+	OrdersOrderStatus OrdersOrderStatus `json:"orders_order_status"`
+	Valid             bool              `json:"valid"` // Valid is true if OrdersOrderStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullOrdersOrderStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.OrdersOrderStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.OrdersOrderStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullOrdersOrderStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.OrdersOrderStatus), nil
+}
 
 type Cart struct {
 	OrderID   int64     `json:"order_id"`
@@ -24,9 +69,10 @@ type CartItem struct {
 }
 
 type Order struct {
-	OrderID   int64     `json:"order_id"`
-	UserID    int64     `json:"user_id"`
-	CreatedAt time.Time `json:"created_at"`
+	OrderID     int64             `json:"order_id"`
+	UserID      int64             `json:"user_id"`
+	CreatedAt   time.Time         `json:"created_at"`
+	OrderStatus OrdersOrderStatus `json:"order_status"`
 }
 
 type OrderItem struct {

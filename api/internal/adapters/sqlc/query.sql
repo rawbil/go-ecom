@@ -106,7 +106,7 @@ SELECT * FROM order_items
 WHERE id = ?;
 
 -- name: AllUsersOrderDetails :many
-SELECT orders.order_id, orders.created_at, order_items.total_price, order_items.quantity AS order_quantity, product_name, products.price AS product_price, products.quantity AS available_products, username, email FROM orders
+SELECT orders.order_id, orders.order_status as order_status, orders.created_at, order_items.total_price, order_items.quantity AS order_quantity, product_name, products.price AS product_price, products.quantity AS available_products, username, email FROM orders
 INNER JOIN order_items
 INNER JOIN products
 INNER JOIN users
@@ -114,9 +114,21 @@ WHERE orders.order_id = order_items.order_id AND order_items.product_id = produc
 ORDER BY orders.created_at DESC;
 
 -- name: IdUserOrderDetails :many
-SELECT orders.order_id, orders.created_at, order_items.total_price, order_items.quantity AS order_quantity, product_name, products.price AS product_price, products.quantity AS available_products, username, email FROM orders
+SELECT orders.order_id, orders.order_status as order_status, orders.created_at, order_items.total_price, order_items.quantity AS order_quantity, product_name, products.price AS product_price, products.quantity AS available_products, username, email FROM orders
 INNER JOIN order_items
 INNER JOIN products
 INNER JOIN users
 WHERE orders.order_id = order_items.order_id AND order_items.product_id = products.product_id AND orders.user_id = users.user_id AND users.user_id = ?
 ORDER BY orders.created_at;
+
+-- name: GetOrderById :one
+SELECT orders.order_id, orders.order_status as order_status, orders.created_at, order_items.total_price, order_items.quantity AS order_quantity, product_name, products.price AS product_price, products.quantity AS available_products, username, email FROM orders
+INNER JOIN order_items
+INNER JOIN products
+INNER JOIN users
+WHERE orders.order_id = order_items.order_id AND order_items.product_id = products.product_id AND orders.user_id = users.user_id AND users.user_id = ? AND orders.order_id = ?;
+
+-- name: CancelOrder :execresult
+UPDATE orders
+SET order_status = "cancelled"
+WHERE order_id = ? AND order_status = "pending";

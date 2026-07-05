@@ -77,7 +77,12 @@ func (h *Handler) ListUser(w http.ResponseWriter, r *http.Request) {
 
 	var body Body
 
-	json.NewDecoder(r.Body).Decode(&body)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&body); err != nil {
+		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		return
+	}
 	user, err := h.service.ListUser(r.Context(), body.Email)
 	if err != nil {
 		utils.ErrorHandler(err, w, http.StatusInternalServerError)
@@ -95,7 +100,10 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		Password: "",
 	}
 
-	json.NewDecoder(r.Body).Decode(&params)
+	if err := utils.DecodeClient(r, &params); err != nil {
+		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		return
+	}
 	if _, err := h.service.CreateUser(r.Context(), params); err != nil {
 		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 	}

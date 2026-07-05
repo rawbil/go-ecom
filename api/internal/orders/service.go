@@ -14,6 +14,7 @@ type Service interface {
 	CreateOrder(ctx context.Context, params CreateOrderParams) (repository.Order, error)
 	GetMyOrder(ctx context.Context) ([]repository.IdUserOrderDetailsRow, error)
 	GetAllOrders(ctx context.Context) ([]repository.AllUsersOrderDetailsRow, error)
+	CancelOrder(ctx context.Context, orderID int64) (sql.Result, error)
 }
 
 type Svc struct {
@@ -130,3 +131,24 @@ func (svc *Svc) GetAllOrders(ctx context.Context) ([]repository.AllUsersOrderDet
 }
 
 // ! CANCEL ORDER
+func (svc *Svc) CancelOrder(ctx context.Context, orderID int64) (sql.Result, error) {
+	//& Ensure authenticated user exists from context
+	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	if !ok {
+		return nil, AuthNotFound
+	}
+	//& Get Order
+	order, err := svc.repository.GetOrderById(ctx, repository.GetOrderByIdParams{
+		UserID:  user_id,
+		OrderID: orderID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if order.OrderStatus == "cancelled" {
+		return nil, fmt.Errorf("Order already cancelled")
+	}
+
+	return svc.repository.CancelOrder(ctx, orderID)
+}

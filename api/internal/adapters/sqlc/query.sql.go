@@ -12,7 +12,7 @@ import (
 )
 
 const allUsersOrderDetails = `-- name: AllUsersOrderDetails :many
-SELECT orders.order_id, orders.created_at, order_items.total_price, order_items.quantity AS order_quantity, product_name, products.price AS product_price, products.quantity AS available_products, username, email FROM orders
+SELECT orders.order_id, orders.order_status as order_status, orders.created_at, order_items.total_price, order_items.quantity AS order_quantity, product_name, products.price AS product_price, products.quantity AS available_products, username, email FROM orders
 INNER JOIN order_items
 INNER JOIN products
 INNER JOIN users
@@ -21,15 +21,16 @@ ORDER BY orders.created_at DESC
 `
 
 type AllUsersOrderDetailsRow struct {
-	OrderID           int64     `json:"order_id"`
-	CreatedAt         time.Time `json:"created_at"`
-	TotalPrice        int64     `json:"total_price"`
-	OrderQuantity     int32     `json:"order_quantity"`
-	ProductName       string    `json:"product_name"`
-	ProductPrice      int64     `json:"product_price"`
-	AvailableProducts int32     `json:"available_products"`
-	Username          string    `json:"username"`
-	Email             string    `json:"email"`
+	OrderID           int64             `json:"order_id"`
+	OrderStatus       OrdersOrderStatus `json:"order_status"`
+	CreatedAt         time.Time         `json:"created_at"`
+	TotalPrice        int64             `json:"total_price"`
+	OrderQuantity     int32             `json:"order_quantity"`
+	ProductName       string            `json:"product_name"`
+	ProductPrice      int64             `json:"product_price"`
+	AvailableProducts int32             `json:"available_products"`
+	Username          string            `json:"username"`
+	Email             string            `json:"email"`
 }
 
 func (q *Queries) AllUsersOrderDetails(ctx context.Context) ([]AllUsersOrderDetailsRow, error) {
@@ -43,6 +44,7 @@ func (q *Queries) AllUsersOrderDetails(ctx context.Context) ([]AllUsersOrderDeta
 		var i AllUsersOrderDetailsRow
 		if err := rows.Scan(
 			&i.OrderID,
+			&i.OrderStatus,
 			&i.CreatedAt,
 			&i.TotalPrice,
 			&i.OrderQuantity,
@@ -63,6 +65,16 @@ func (q *Queries) AllUsersOrderDetails(ctx context.Context) ([]AllUsersOrderDeta
 		return nil, err
 	}
 	return items, nil
+}
+
+const cancelOrder = `-- name: CancelOrder :execresult
+UPDATE orders
+SET order_status = "cancelled"
+WHERE order_id = ? AND order_status = "pending"
+`
+
+func (q *Queries) CancelOrder(ctx context.Context, orderID int64) (sql.Result, error) {
+	return q.db.ExecContext(ctx, cancelOrder, orderID)
 }
 
 const createOrder = `-- name: CreateOrder :execresult
@@ -174,6 +186,50 @@ func (q *Queries) DeleteUser(ctx context.Context, email string) error {
 	return err
 }
 
+const getOrderById = `-- name: GetOrderById :one
+SELECT orders.order_id, orders.order_status as order_status, orders.created_at, order_items.total_price, order_items.quantity AS order_quantity, product_name, products.price AS product_price, products.quantity AS available_products, username, email FROM orders
+INNER JOIN order_items
+INNER JOIN products
+INNER JOIN users
+WHERE orders.order_id = order_items.order_id AND order_items.product_id = products.product_id AND orders.user_id = users.user_id AND users.user_id = ? AND orders.order_id = ?
+`
+
+type GetOrderByIdParams struct {
+	UserID  int64 `json:"user_id"`
+	OrderID int64 `json:"order_id"`
+}
+
+type GetOrderByIdRow struct {
+	OrderID           int64             `json:"order_id"`
+	OrderStatus       OrdersOrderStatus `json:"order_status"`
+	CreatedAt         time.Time         `json:"created_at"`
+	TotalPrice        int64             `json:"total_price"`
+	OrderQuantity     int32             `json:"order_quantity"`
+	ProductName       string            `json:"product_name"`
+	ProductPrice      int64             `json:"product_price"`
+	AvailableProducts int32             `json:"available_products"`
+	Username          string            `json:"username"`
+	Email             string            `json:"email"`
+}
+
+func (q *Queries) GetOrderById(ctx context.Context, arg GetOrderByIdParams) (GetOrderByIdRow, error) {
+	row := q.db.QueryRowContext(ctx, getOrderById, arg.UserID, arg.OrderID)
+	var i GetOrderByIdRow
+	err := row.Scan(
+		&i.OrderID,
+		&i.OrderStatus,
+		&i.CreatedAt,
+		&i.TotalPrice,
+		&i.OrderQuantity,
+		&i.ProductName,
+		&i.ProductPrice,
+		&i.AvailableProducts,
+		&i.Username,
+		&i.Email,
+	)
+	return i, err
+}
+
 const getRefreshToken = `-- name: GetRefreshToken :one
 SELECT id, refresh_token, issued_at, expires_at, user_id FROM refresh_tokens
 WHERE user_id = ?
@@ -193,7 +249,7 @@ func (q *Queries) GetRefreshToken(ctx context.Context, userID int64) (RefreshTok
 }
 
 const idUserOrderDetails = `-- name: IdUserOrderDetails :many
-SELECT orders.order_id, orders.created_at, order_items.total_price, order_items.quantity AS order_quantity, product_name, products.price AS product_price, products.quantity AS available_products, username, email FROM orders
+SELECT orders.order_id, orders.order_status as order_status, orders.created_at, order_items.total_price, order_items.quantity AS order_quantity, product_name, products.price AS product_price, products.quantity AS available_products, username, email FROM orders
 INNER JOIN order_items
 INNER JOIN products
 INNER JOIN users
@@ -202,15 +258,16 @@ ORDER BY orders.created_at
 `
 
 type IdUserOrderDetailsRow struct {
-	OrderID           int64     `json:"order_id"`
-	CreatedAt         time.Time `json:"created_at"`
-	TotalPrice        int64     `json:"total_price"`
-	OrderQuantity     int32     `json:"order_quantity"`
-	ProductName       string    `json:"product_name"`
-	ProductPrice      int64     `json:"product_price"`
-	AvailableProducts int32     `json:"available_products"`
-	Username          string    `json:"username"`
-	Email             string    `json:"email"`
+	OrderID           int64             `json:"order_id"`
+	OrderStatus       OrdersOrderStatus `json:"order_status"`
+	CreatedAt         time.Time         `json:"created_at"`
+	TotalPrice        int64             `json:"total_price"`
+	OrderQuantity     int32             `json:"order_quantity"`
+	ProductName       string            `json:"product_name"`
+	ProductPrice      int64             `json:"product_price"`
+	AvailableProducts int32             `json:"available_products"`
+	Username          string            `json:"username"`
+	Email             string            `json:"email"`
 }
 
 func (q *Queries) IdUserOrderDetails(ctx context.Context, userID int64) ([]IdUserOrderDetailsRow, error) {
@@ -224,6 +281,7 @@ func (q *Queries) IdUserOrderDetails(ctx context.Context, userID int64) ([]IdUse
 		var i IdUserOrderDetailsRow
 		if err := rows.Scan(
 			&i.OrderID,
+			&i.OrderStatus,
 			&i.CreatedAt,
 			&i.TotalPrice,
 			&i.OrderQuantity,
@@ -247,14 +305,19 @@ func (q *Queries) IdUserOrderDetails(ctx context.Context, userID int64) ([]IdUse
 }
 
 const listOrder = `-- name: ListOrder :one
-SELECT order_id, user_id, created_at FROM orders
+SELECT order_id, user_id, created_at, order_status FROM orders
 WHERE order_id = ?
 `
 
 func (q *Queries) ListOrder(ctx context.Context, orderID int64) (Order, error) {
 	row := q.db.QueryRowContext(ctx, listOrder, orderID)
 	var i Order
-	err := row.Scan(&i.OrderID, &i.UserID, &i.CreatedAt)
+	err := row.Scan(
+		&i.OrderID,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.OrderStatus,
+	)
 	return i, err
 }
 
@@ -313,7 +376,7 @@ func (q *Queries) ListOrderItems(ctx context.Context) ([]OrderItem, error) {
 }
 
 const listOrders = `-- name: ListOrders :many
-SELECT order_id, user_id, created_at FROM orders
+SELECT order_id, user_id, created_at, order_status FROM orders
 ORDER BY created_at DESC
 `
 
@@ -326,7 +389,12 @@ func (q *Queries) ListOrders(ctx context.Context) ([]Order, error) {
 	var items []Order
 	for rows.Next() {
 		var i Order
-		if err := rows.Scan(&i.OrderID, &i.UserID, &i.CreatedAt); err != nil {
+		if err := rows.Scan(
+			&i.OrderID,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.OrderStatus,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
