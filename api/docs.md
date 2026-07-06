@@ -1,0 +1,1 @@
+- A `sql.ErrNoRows` is only returned for a :one query. A :many query does not return it

@@ -158,6 +158,40 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Res
 	return q.db.ExecContext(ctx, createUser, arg.Username, arg.Email, arg.Password)
 }
 
+const deleteOrderItemByProductID = `-- name: DeleteOrderItemByProductID :exec
+DELETE FROM order_items
+WHERE product_id = ?
+`
+
+func (q *Queries) DeleteOrderItemByProductID(ctx context.Context, productID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteOrderItemByProductID, productID)
+	return err
+}
+
+const deleteOrderItemByProductId = `-- name: DeleteOrderItemByProductId :exec
+DELETE FROM order_items
+WHERE product_id = ?
+`
+
+func (q *Queries) DeleteOrderItemByProductId(ctx context.Context, productID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteOrderItemByProductId, productID)
+	return err
+}
+
+const deleteOrderswithoutItems = `-- name: DeleteOrderswithoutItems :exec
+DELETE FROM orders
+WHERE NOT EXISTS(
+    SELECT 1
+    FROM order_items
+    WHERE order_items.order_id = orders.order_id
+)
+`
+
+func (q *Queries) DeleteOrderswithoutItems(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteOrderswithoutItems)
+	return err
+}
+
 const deleteProduct = `-- name: DeleteProduct :exec
 DELETE FROM products
 WHERE product_id = ?
@@ -228,6 +262,51 @@ func (q *Queries) GetOrderById(ctx context.Context, arg GetOrderByIdParams) (Get
 		&i.Email,
 	)
 	return i, err
+}
+
+const getPaidProductOrders = `-- name: GetPaidProductOrders :many
+SELECT orders.order_id, orders.user_id, orders.created_at, orders.order_status, order_items.product_id 
+FROM orders
+INNER JOIN order_items
+ON orders.order_id = order_items.order_id 
+WHERE order_items.product_id = ? AND orders.order_status = "paid"
+`
+
+type GetPaidProductOrdersRow struct {
+	OrderID     int64             `json:"order_id"`
+	UserID      int64             `json:"user_id"`
+	CreatedAt   time.Time         `json:"created_at"`
+	OrderStatus OrdersOrderStatus `json:"order_status"`
+	ProductID   int64             `json:"product_id"`
+}
+
+func (q *Queries) GetPaidProductOrders(ctx context.Context, productID int64) ([]GetPaidProductOrdersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPaidProductOrders, productID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPaidProductOrdersRow
+	for rows.Next() {
+		var i GetPaidProductOrdersRow
+		if err := rows.Scan(
+			&i.OrderID,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.OrderStatus,
+			&i.ProductID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getRefreshToken = `-- name: GetRefreshToken :one

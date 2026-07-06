@@ -66,7 +66,10 @@ func (h *Handler) ListAllUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.JsonResponse(w, users)
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: "success",
+		Data:    map[string]any{"users": users},
+	})
 }
 
 // ! GET User by email
@@ -89,7 +92,10 @@ func (h *Handler) ListUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.JsonResponse(w, user)
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: "Success",
+		Data:    map[string]any{"user": user},
+	})
 }
 
 // ! CREATE User
@@ -108,7 +114,9 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 	}
 
-	utils.JsonResponse(w, Response{"User Created Successfully!"})
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: "User Created Successfully",
+	})
 }
 
 // ! DELETE User
@@ -118,10 +126,28 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body Body
-	json.NewDecoder(r.Body).Decode(&body)
+	if err := utils.DecodeClient(r, &body); err != nil {
+		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		return
+	}
 
 	err := h.service.DeleteUser(r.Context(), body.Email)
 	if err != nil {
+		if err == AuthNotFound {
+			utils.ErrorHandler(err, w, http.StatusUnauthorized)
+			return
+		}
+
+		if err == UserNotFound {
+			utils.ErrorHandler(err, w, http.StatusNotFound)
+			return
+		}
+
 		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		return
 	}
+
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: "User Deleted Succesfully",
+	})
 }

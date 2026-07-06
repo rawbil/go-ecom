@@ -36,8 +36,12 @@ func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	product, _ := h.service.ListProduct(r.Context(), product_id)
 
-	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, "%s created successfully!!", product.ProductName)
+	message := fmt.Sprintf("%s created successfully!!", product.ProductName)
+	
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: message,
+		Data:    map[string]any{"product": product},
+	})
 
 }
 
@@ -91,7 +95,10 @@ func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.JsonResponse(w, products)
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: "Success",
+		Data:    map[string]any{"products": products},
+	})
 }
 
 // ! ListProduct
@@ -107,7 +114,10 @@ func (h *Handler) ListProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.JsonResponse(w, product)
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: "Success",
+		Data:    map[string]any{"product": product},
+	})
 }
 
 // ! DeleteProduct
@@ -116,17 +126,28 @@ func (h *Handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		ID int64
 	}
 	var body Body
-	json.NewDecoder(r.Body).Decode(&body)
-	err := h.service.DeleteProduct(r.Context(), body.ID)
+	if err := utils.DecodeClient(r, &body); err != nil {
+		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.service.DeleteProduct(r.Context(), body.ID)
 	if err != nil {
+		if err == productNotFoundError {
+			utils.ErrorHandler(err, w, http.StatusNotFound)
+			return
+		}
+
 		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 		return
 	}
 
-	product, _ := h.service.ListProduct(r.Context(), body.ID)
+	message := fmt.Sprintf("%s deleted successfully!!", product.ProductName)
 
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "%s deleted successfully!!", product.ProductName)
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: message,
+		Data:    map[string]string{"Name": product.ProductName},
+	})
 }
 
 // ! UpdateProduct
@@ -137,7 +158,8 @@ func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorHandler(err, w, http.StatusBadRequest)
 		return
 	}
-	if _, err := h.service.UpdateProduct(r.Context(), params); err != nil {
+	product, err := h.service.UpdateProduct(r.Context(), params)
+	if err != nil {
 		if err == MinError || err == OneFieldRequired {
 			utils.ErrorHandler(err, w, http.StatusBadRequest)
 			return
@@ -153,5 +175,6 @@ func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	utils.JsonResponse(w, utils.SuccessMessage{
 		Message: "Product Updated successfully",
+		Data:    map[string]any{"product": product},
 	})
 }

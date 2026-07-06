@@ -150,5 +150,9 @@ func (svc *Svc) CancelOrder(ctx context.Context, orderID int64) (sql.Result, err
 		return nil, fmt.Errorf("Order already cancelled")
 	}
 
+	if order.OrderStatus == "paid" || order.OrderStatus == "completed" {
+		return nil, fmt.Errorf("Order cannot be cancelled at this stage")
+	}
+
 	return svc.repository.CancelOrder(ctx, orderID)
 }

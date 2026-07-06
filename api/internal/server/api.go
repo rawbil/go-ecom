@@ -43,7 +43,7 @@ func (app *Application) Mount() http.Handler {
 	authService := auth.NewService(*repo, app.DB)
 	authHandler := auth.NewHandler(authService)
 
-	productsService := products.NewService(*repo)
+	productsService := products.NewService(*repo, app.DB)
 	productsHandler := products.NewHandler(productsService)
 
 	usersService := users.NewService(*repo)

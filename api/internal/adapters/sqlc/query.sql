@@ -105,6 +105,10 @@ WHERE order_id = ?;
 SELECT * FROM order_items
 WHERE id = ?;
 
+-- name: DeleteOrderItemByProductId :exec
+DELETE FROM order_items
+WHERE product_id = ?;
+
 -- name: AllUsersOrderDetails :many
 SELECT orders.order_id, orders.order_status as order_status, orders.created_at, order_items.total_price, order_items.quantity AS order_quantity, product_name, products.price AS product_price, products.quantity AS available_products, username, email FROM orders
 INNER JOIN order_items
@@ -128,7 +132,26 @@ INNER JOIN products
 INNER JOIN users
 WHERE orders.order_id = order_items.order_id AND order_items.product_id = products.product_id AND orders.user_id = users.user_id AND users.user_id = ? AND orders.order_id = ?;
 
+-- name: GetPaidProductOrders :many
+SELECT orders.order_id, orders.user_id, orders.created_at, orders.order_status, order_items.product_id 
+FROM orders
+INNER JOIN order_items
+ON orders.order_id = order_items.order_id 
+WHERE order_items.product_id = ? AND orders.order_status = "paid";
+
 -- name: CancelOrder :execresult
 UPDATE orders
 SET order_status = "cancelled"
 WHERE order_id = ? AND order_status = "pending";
+
+-- name: DeleteOrderItemByProductID :exec
+DELETE FROM order_items
+WHERE product_id = ?;
+
+-- name: DeleteOrderswithoutItems :exec
+DELETE FROM orders
+WHERE NOT EXISTS(
+    SELECT 1
+    FROM order_items
+    WHERE order_items.order_id = orders.order_id
+);
