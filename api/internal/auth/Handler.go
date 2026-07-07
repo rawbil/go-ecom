@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 
@@ -62,7 +63,7 @@ func (h *Handler) UserRegister(w http.ResponseWriter, r *http.Request) {
 		Username: registerParams.Username,
 	}
 
-	html, err := email.RenderHtml(os.DirFS("../email/templates/welcome.html"), email_data)
+	html, err := email.RenderHtml(os.DirFS("internal/email/templates"), email_data)
 	if err != nil {
 		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 		return
@@ -73,7 +74,7 @@ func (h *Handler) UserRegister(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 		return
 	} else {
-		
+		log.Println("Email Sent Successfully")
 	}
 
 	utils.JsonResponse(w, utils.SuccessMessage{
