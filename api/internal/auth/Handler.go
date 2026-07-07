@@ -3,14 +3,21 @@ package auth
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
+	"github.com/rawbil/ecom2/internal/config"
+	"github.com/rawbil/ecom2/internal/email"
 	"github.com/rawbil/ecom2/internal/utils"
 )
 
 type Handler struct {
 	Service Service
+}
+
+type RegisterEmailData struct {
+	Username string
 }
 
 func NewHandler(service Service) *Handler {
@@ -22,9 +29,8 @@ func NewHandler(service Service) *Handler {
 // ! REGISTER
 func (h *Handler) UserRegister(w http.ResponseWriter, r *http.Request) {
 	var registerParams repository.CreateUserParams
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&registerParams); err != nil {
+
+	if err := utils.DecodeClient(r, &registerParams); err != nil {
 		utils.ErrorHandler(err, w, http.StatusBadRequest)
 		return
 	}
@@ -49,6 +55,25 @@ func (h *Handler) UserRegister(w http.ResponseWriter, r *http.Request) {
 		}
 		utils.ErrorHandler(err, w, http.StatusInternalServerError)
 		return
+	}
+
+	//& Email
+	email_data := RegisterEmailData{
+		Username: registerParams.Username,
+	}
+
+	html, err := email.RenderHtml(os.DirFS("../email/templates/welcome.html"), email_data)
+	if err != nil {
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		return
+	}
+
+	sender := email.NewResendSender(config.GetResendConfig().ApiKey, config.GetResendConfig().EmailFrom)
+	if err := sender.EmailConfig(registerParams.Email, "Registration Successful", html); err != nil {
+		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		return
+	} else {
+		
 	}
 
 	utils.JsonResponse(w, utils.SuccessMessage{

@@ -21,6 +21,11 @@ type JwtConfig struct {
 	RefreshTokenExpire int
 }
 
+type ResendConfig struct {
+	ApiKey    string
+	EmailFrom string
+}
+
 func InitConfig() Config {
 	return Config{
 		Port:       getEnv("PORT", "3306"),
@@ -41,6 +46,13 @@ func GetJwtConfig() JwtConfig {
 		JwtSecret:          getEnv("JWT_SECRET", ""),
 		JwtExpire:          int(getIntEnv("JWT_EXPIRE", 3600)),
 		RefreshTokenExpire: int(getIntEnv("REFRESH_TOKEN_EXPIRE", 7)),
+	}
+}
+
+func GetResendConfig() *ResendConfig {
+	return &ResendConfig{
+		ApiKey:    getEnv("RESEND_API_KEY", ""),
+		EmailFrom: getEnv("EMAIL_FROM", "bildadsimiyu6@gmail.com"),
 	}
 }
 
