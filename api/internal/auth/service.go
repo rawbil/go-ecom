@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math/rand"
 	"time"
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
@@ -314,4 +315,24 @@ func (svc *Svc) RefreshTokens(ctx context.Context, arg authutils.RefreshTokenPar
 	}
 
 	return new_auth_token, new_hashed_token, nil
+}
+
+// ! Forgot Password
+func (svc *Svc) ForgotPassword(ctx context.Context, email string) error {
+
+	//& Get User By email
+	user, err := svc.repository.ListUser(ctx, email)
+	if err != nil {
+		return err
+	}
+
+	alphasUpper := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	alphasLower := "abcdefghijklmnopqrstuvwxyz"
+	numerics := "0123456789"
+	specialChars := "!#$%^&*+_-?."
+
+	var new_password string
+
+	// Loop through uppercase letters
+
 }
