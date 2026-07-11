@@ -331,7 +331,7 @@ func (svc *Svc) ForgotPassword(ctx context.Context, email string) error {
 	numerics := "0123456789"
 	specialChars := "!#$%^&*+_-?."
 
-	var new_password string
+	
 
 	// Loop through uppercase letters
 
