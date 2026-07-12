@@ -326,10 +326,10 @@ func (svc *Svc) ForgotPassword(ctx context.Context, email string) error {
 		return err
 	}
 
-	alphasUpper := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	alphasLower := "abcdefghijklmnopqrstuvwxyz"
-	numerics := "0123456789"
-	specialChars := "!#$%^&*+_-?."
+	// alphasUpper := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	// alphasLower := "abcdefghijklmnopqrstuvwxyz"
+	// numerics := "0123456789"
+	// specialChars := "!#$%^&*+_-?."
 
 	
 
