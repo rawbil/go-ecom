@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
@@ -331,8 +330,6 @@ func (svc *Svc) ForgotPassword(ctx context.Context, email string) error {
 	// numerics := "0123456789"
 	// specialChars := "!#$%^&*+_-?."
 
-	
-
 	// Loop through uppercase letters
-
+return nil
 }

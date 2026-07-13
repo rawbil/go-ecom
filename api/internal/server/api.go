@@ -3,9 +3,7 @@ package server
 import (
 	"database/sql"
 	"fmt"
-	"log/slog"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -13,9 +11,11 @@ import (
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	"github.com/rawbil/ecom2/internal/auth"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
+	"github.com/rawbil/ecom2/internal/middlewarefns"
 	"github.com/rawbil/ecom2/internal/orders"
 	"github.com/rawbil/ecom2/internal/products"
 	"github.com/rawbil/ecom2/internal/users"
+	"github.com/rawbil/ecom2/internal/utils"
 )
 
 type Application struct {
@@ -34,9 +34,12 @@ type DBConfig struct {
 
 // mount
 func (app *Application) Mount() http.Handler {
+	utils.Slogger()
+
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
+	// r.Use(middleware.Logger)
+	r.Use(middlewarefns.Logger())
 	r.Use(middleware.Recoverer)
 
 	repo := repository.New(app.DB)
@@ -129,8 +132,7 @@ func (app *Application) Mount() http.Handler {
 
 // run
 func (app *Application) Run(m http.Handler) error {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
+
 	srv := &http.Server{
 		Addr:         app.Config.Addr,
 		Handler:      m,
@@ -141,7 +143,7 @@ func (app *Application) Run(m http.Handler) error {
 
 	if app.Config.Addr != "" {
 		message := fmt.Sprintf("Server is running on http://localhost%s", app.Config.Addr)
-		slog.Info(message, "Status", http.StatusOK)
+		utils.Log.Info(message, "Status", http.StatusOK)
 	}
 
 	return srv.ListenAndServe()
