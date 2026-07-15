@@ -36,9 +36,10 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		if err == NotFoundError {
-			http.Error(w, NotFoundError.Error(), http.StatusNotFound)
+			utils.ErrorHandler(err, err.Error(), w, http.StatusNotFound)
+			return
 		}
-		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
 		return
 	}
 	utils.JsonResponse(w, createdOrder)
@@ -51,15 +52,15 @@ func (h *Handler) GetMyOrder(w http.ResponseWriter, r *http.Request) {
 	order_details, err := h.service.GetMyOrder(r.Context())
 	if err != nil {
 		if err == AuthNotFound {
-			utils.ErrorHandler(err, w, http.StatusUnauthorized)
+			utils.ErrorHandler(err, err.Error(), w, http.StatusUnauthorized)
 			return
 		}
-		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
 		return
 	}
 
 	if len(order_details) < 1 {
-		utils.ErrorHandler(errors.New("No orders for you"), w, http.StatusNotFound)
+		utils.ErrorHandler(errors.New("No orders for you"), "No orders for you", w, http.StatusNotFound)
 		return
 	}
 
@@ -75,12 +76,12 @@ func (h *Handler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 
 	order_details, err := h.service.GetAllOrders(r.Context())
 	if err != nil {
-		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
 		return
 	}
 
 	if len(order_details) < 1 {
-		utils.ErrorHandler(errors.New("No orders found"), w, http.StatusNotFound)
+		utils.ErrorHandler(errors.New("No orders found"), "No orders found", w, http.StatusNotFound)
 		return
 	}
 
@@ -97,16 +98,16 @@ func (h *Handler) CancleOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	var body Body
 	if err := utils.DecodeClient(r, &body); err != nil {
-		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		utils.ErrorHandler(err, "error decoding body", w, http.StatusBadRequest)
 		return
 	}
 
 	if _, err := h.service.CancelOrder(r.Context(), body.OrderID); err != nil {
 		if err == AuthNotFound {
-			utils.ErrorHandler(err, w, http.StatusUnauthorized)
+			utils.ErrorHandler(err, err.Error(), w, http.StatusUnauthorized)
 			return
 		}
-		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
 		return
 	}
 

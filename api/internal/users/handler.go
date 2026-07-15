@@ -1,7 +1,6 @@
 package users
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -57,12 +56,12 @@ func (h *Handler) ListAllUsers(w http.ResponseWriter, r *http.Request) {
 		Role:     role,
 	})
 	if err != nil {
-		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
 		return
 	}
 
 	if len(users) < 1 {
-		utils.ErrorHandler(errors.New("No user found"), w, http.StatusNotFound)
+		utils.ErrorHandler(errors.New("No user found"), "No user found", w, http.StatusNotFound)
 		return
 	}
 
@@ -80,15 +79,13 @@ func (h *Handler) ListUser(w http.ResponseWriter, r *http.Request) {
 
 	var body Body
 
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&body); err != nil {
-		utils.ErrorHandler(err, w, http.StatusBadRequest)
+	if err := utils.DecodeClient(r, &body); err != nil {
+		utils.ErrorHandler(err, "error decoding body", w, http.StatusBadRequest)
 		return
 	}
 	user, err := h.service.ListUser(r.Context(), body.Email)
 	if err != nil {
-		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
 		return
 	}
 
@@ -107,11 +104,11 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := utils.DecodeClient(r, &params); err != nil {
-		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		utils.ErrorHandler(err, err.Error(), w, http.StatusBadRequest)
 		return
 	}
 	if _, err := h.service.CreateUser(r.Context(), params); err != nil {
-		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
 	}
 
 	utils.JsonResponse(w, utils.SuccessMessage{
@@ -127,23 +124,23 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	var body Body
 	if err := utils.DecodeClient(r, &body); err != nil {
-		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		utils.ErrorHandler(err, "error decoding body", w, http.StatusBadRequest)
 		return
 	}
 
 	err := h.service.DeleteUser(r.Context(), body.Email)
 	if err != nil {
 		if err == AuthNotFound {
-			utils.ErrorHandler(err, w, http.StatusUnauthorized)
+			utils.ErrorHandler(err, err.Error(), w, http.StatusUnauthorized)
 			return
 		}
 
 		if err == UserNotFound {
-			utils.ErrorHandler(err, w, http.StatusNotFound)
+			utils.ErrorHandler(err, err.Error(), w, http.StatusNotFound)
 			return
 		}
 
-		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
 		return
 	}
 

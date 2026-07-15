@@ -24,11 +24,14 @@ func NewHandler(service Service) *Handler {
 func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var params repository.CreateProductParams
 
-	json.NewDecoder(r.Body).Decode(&params)
+	if err := utils.DecodeClient(r, &params); err != nil {
+		utils.ErrorHandler(err, "error decoding body", w, http.StatusBadRequest)
+		return
+	}
 
 	result, err := h.service.CreateProduct(r.Context(), params)
 	if err != nil {
-		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
 		return
 	}
 
@@ -37,7 +40,7 @@ func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	product, _ := h.service.ListProduct(r.Context(), product_id)
 
 	message := fmt.Sprintf("%s created successfully!!", product.ProductName)
-	
+
 	utils.JsonResponse(w, utils.SuccessMessage{
 		Message: message,
 		Data:    map[string]any{"product": product},
@@ -85,7 +88,7 @@ func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 		Offset:   int32(offset),
 	})
 	if err != nil {
-		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
 		return
 	}
 
@@ -110,7 +113,7 @@ func (h *Handler) ListProduct(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&body)
 	product, err := h.service.ListProduct(r.Context(), body.ID)
 	if err != nil {
-		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
 		return
 	}
 
@@ -127,18 +130,18 @@ func (h *Handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	}
 	var body Body
 	if err := utils.DecodeClient(r, &body); err != nil {
-		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		utils.ErrorHandler(err, "error decoding body", w, http.StatusBadRequest)
 		return
 	}
 
 	product, err := h.service.DeleteProduct(r.Context(), body.ID)
 	if err != nil {
 		if err == productNotFoundError {
-			utils.ErrorHandler(err, w, http.StatusNotFound)
+			utils.ErrorHandler(err, err.Error(), w, http.StatusNotFound)
 			return
 		}
 
-		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
 		return
 	}
 
@@ -155,21 +158,21 @@ func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	var params repository.UpdateProductParams
 
 	if err := utils.DecodeClient(r, &params); err != nil {
-		utils.ErrorHandler(err, w, http.StatusBadRequest)
+		utils.ErrorHandler(err, err.Error(), w, http.StatusBadRequest)
 		return
 	}
 	product, err := h.service.UpdateProduct(r.Context(), params)
 	if err != nil {
 		if err == MinError || err == OneFieldRequired {
-			utils.ErrorHandler(err, w, http.StatusBadRequest)
+			utils.ErrorHandler(err, err.Error(), w, http.StatusBadRequest)
 			return
 		}
 
 		if err == productNotFoundError {
-			utils.ErrorHandler(err, w, http.StatusNotFound)
+			utils.ErrorHandler(err, err.Error(), w, http.StatusNotFound)
 			return
 		}
-		utils.ErrorHandler(err, w, http.StatusInternalServerError)
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
 		return
 	}
 
