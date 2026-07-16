@@ -20,6 +20,8 @@ type Service interface {
 	LogoutUser(ctx context.Context) error
 	PasswordReset(ctx context.Context, arg authutils.PasswordResetParams) error
 	RefreshTokens(ctx context.Context, arg authutils.RefreshTokenParam) (string, string, error)
+	UpdateMyEmail(ctx context.Context, arg authutils.UpdateEmailParams) (repository.User, error)
+	UpdateMyUsername(ctx context.Context, arg authutils.UpdateUsernameParams) (repository.User, error)
 }
 
 type Svc struct {
@@ -47,6 +49,8 @@ var (
 	SimilarPasswordError  = errors.New("New password should be different from Old password")
 	InvalidRefreshToken   = errors.New("Invalid refresh token. Login again...")
 	TokenExpiredError     = errors.New("Refresh token expired. Login again...")
+	UsernameLenErr        = errors.New("username should be at least 3 characters long")
+	EmailTaken            = errors.New("email already taken")
 )
 
 // ! REGISTER
@@ -316,6 +320,105 @@ func (svc *Svc) RefreshTokens(ctx context.Context, arg authutils.RefreshTokenPar
 	return new_auth_token, new_hashed_token, nil
 }
 
+// ! UPDATE USERNAME
+func (svc *Svc) UpdateMyUsername(ctx context.Context, arg authutils.UpdateUsernameParams) (repository.User, error) {
+	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	if !ok {
+		return repository.User{}, AuthNotFound
+	}
+
+	user, err := svc.repository.ListUserById(ctx, user_id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return repository.User{}, AuthUserNotFound
+		}
+		return repository.User{}, err
+	}
+
+	//~ Validate fields
+	if err := authutils.UpdateUsernameValidation(arg); err != nil {
+		if authutils.ValidationErrorCheck("min", err) {
+			return repository.User{}, UsernameLenErr
+		}
+		if authutils.ValidationErrorCheck("required", err) {
+			return repository.User{}, FieldsRequiredError
+		}
+
+		return repository.User{}, err
+	}
+
+	//~ Save user
+	if _, err := svc.repository.UpdateUsername(ctx, repository.UpdateUsernameParams{
+		UserID:   user.UserID,
+		Username: arg.Username,
+	}); err != nil {
+		return repository.User{}, err
+	}
+
+	updated_user, err := svc.repository.ListUserById(ctx, user.UserID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return repository.User{}, UserNotFoundError
+		}
+		return repository.User{}, err
+	}
+
+	return updated_user, nil
+}
+
+// ! UPDATE EMAIL
+func (svc *Svc) UpdateMyEmail(ctx context.Context, arg authutils.UpdateEmailParams) (repository.User, error) {
+	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	if !ok {
+		return repository.User{}, AuthNotFound
+	}
+
+	user, err := svc.repository.ListUserById(ctx, user_id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return repository.User{}, AuthUserNotFound
+		}
+		return repository.User{}, err
+	}
+
+	//~ Validate fields
+	if err := authutils.UpdateEmailValidation(arg); err != nil {
+		if authutils.ValidationErrorCheck("required", err) {
+			return repository.User{}, FieldsRequiredError
+		}
+
+		if authutils.ValidationErrorCheck("email", err) {
+			return repository.User{}, InvalidEmailError
+		}
+		return repository.User{}, err
+	}
+
+	//~ Ensure email does not exist
+	if _, err := svc.repository.ListUser(ctx, arg.Email); err == nil {
+		return repository.User{}, EmailTaken
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return repository.User{}, EmailTaken
+	}
+
+	//~ Update user
+	if _, err := svc.repository.UpdateUserEmail(ctx, repository.UpdateUserEmailParams{
+		UserID: user.UserID,
+		Email:  arg.Email,
+	}); err != nil {
+		return repository.User{}, err
+	}
+
+	updated_user, err := svc.repository.ListUserById(ctx, user.UserID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return repository.User{}, UserNotFoundError
+		}
+		return repository.User{}, err
+	}
+
+	return updated_user, nil
+}
+
 // ! Forgot Password
 func (svc *Svc) ForgotPassword(ctx context.Context, email string) error {
 
@@ -331,5 +434,5 @@ func (svc *Svc) ForgotPassword(ctx context.Context, email string) error {
 	// specialChars := "!#$%^&*+_-?."
 
 	// Loop through uppercase letters
-return nil
+	return nil
 }

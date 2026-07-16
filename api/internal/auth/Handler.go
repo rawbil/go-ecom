@@ -191,3 +191,72 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		Data:    map[string]string{"access_token": authToken, "refresh_token": refreshToken},
 	})
 }
+
+// ! UPDATE MY USERNAME
+func (h *Handler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
+	var params authutils.UpdateUsernameParams
+
+	if err := utils.DecodeClient(r, &params); err != nil {
+		utils.ErrorHandler(err, "error decoding body", w, http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.Service.UpdateMyUsername(r.Context(), params)
+	if err != nil {
+
+		if err == AuthUserNotFound || err == UserNotFoundError {
+			utils.ErrorHandler(err, err.Error(), w, http.StatusUnauthorized)
+			return
+		}
+
+		if err == FieldsRequiredError || err == UsernameLenErr {
+			utils.ErrorHandler(err, err.Error(), w, http.StatusBadRequest)
+			return
+		}
+
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
+		return
+	}
+
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: "details updated",
+		Data:    map[string]any{"user": user},
+	})
+}
+
+// ! UPDATE MY EMAIL
+func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
+	var params authutils.UpdateEmailParams
+
+	if err := utils.DecodeClient(r, &params); err != nil {
+		utils.ErrorHandler(err, "error decoding body", w, http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.Service.UpdateMyEmail(r.Context(), params)
+	if err != nil {
+
+		if err == AuthUserNotFound || err == UserNotFoundError {
+			utils.ErrorHandler(err, err.Error(), w, http.StatusUnauthorized)
+			return
+		}
+
+		if err == FieldsRequiredError || err == InvalidEmailError {
+			utils.ErrorHandler(err, err.Error(), w, http.StatusBadRequest)
+			return
+		}
+
+		if err == EmailTaken {
+			utils.ErrorHandler(err, err.Error(), w, http.StatusConflict)
+			return
+		}
+
+		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
+		return
+	}
+
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: "details updated",
+		Data:    map[string]any{"user": user},
+	})
+}

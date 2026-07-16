@@ -732,3 +732,33 @@ func (q *Queries) UpdateRefreshToken(ctx context.Context, arg UpdateRefreshToken
 		arg.UserID,
 	)
 }
+
+const updateUserEmail = `-- name: UpdateUserEmail :execresult
+UPDATE users
+SET email=?
+WHERE user_id=?
+`
+
+type UpdateUserEmailParams struct {
+	Email  string `json:"email"`
+	UserID int64  `json:"user_id"`
+}
+
+func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateUserEmail, arg.Email, arg.UserID)
+}
+
+const updateUsername = `-- name: UpdateUsername :execresult
+UPDATE users
+SET username=?
+WHERE user_id=?
+`
+
+type UpdateUsernameParams struct {
+	Username string `json:"username"`
+	UserID   int64  `json:"user_id"`
+}
+
+func (q *Queries) UpdateUsername(ctx context.Context, arg UpdateUsernameParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateUsername, arg.Username, arg.UserID)
+}

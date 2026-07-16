@@ -20,6 +20,16 @@ SELECT * FROM users WHERE user_id = ? LIMIT 1;
 INSERT INTO users (username, email, password)
 VALUES (?, ?, ?);
 
+-- name: UpdateUserEmail :execresult
+UPDATE users
+SET email=?
+WHERE user_id=?;
+
+-- name: UpdateUsername :execresult
+UPDATE users
+SET username=?
+WHERE user_id=?;
+
 -- name: DeleteUser :exec
 DELETE FROM users WHERE email = ?;
 

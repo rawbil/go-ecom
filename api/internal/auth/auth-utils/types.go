@@ -20,6 +20,14 @@ type RefreshTokenParam struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
+type UpdateUsernameParams struct {
+	Username string `json:"username" validate:"required,min=3"`
+}
+
+type UpdateEmailParams struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
 type UpdateProductParams struct {
 	ProductId int64 `json:"product_id" validate:"required"`
 	Price     int64 `json:"price" validate:"min=0"`

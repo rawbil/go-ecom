@@ -49,6 +49,14 @@ func RefreshTokenValidation(arg RefreshTokenParam) error {
 	return validate.Struct(arg)
 }
 
+func UpdateUsernameValidation(arg UpdateUsernameParams) error {
+	return validate.Struct(arg)
+}
+
+func UpdateEmailValidation(arg UpdateEmailParams) error {
+	return validate.Struct(arg)
+}
+
 func UpdateProductValidation(arg repository.UpdateProductParams) error {
 	return validate.Struct(UpdateProductParams{
 		ProductId: arg.ProductID,
