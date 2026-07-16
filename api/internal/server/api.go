@@ -73,6 +73,7 @@ func (app *Application) Mount() http.Handler {
 			r.With(authutils.AuthMiddleware(*repo)).Post("/update-my-email", authHandler.UpdateUserEmail)
 			//? POST /auth/update-my-username
 			r.With(authutils.AuthMiddleware(*repo)).Post("/update-my-username", authHandler.UpdateUsername)
+			r.Post("/forgot-password", authHandler.ForgotPassword)
 		})
 
 		//& Group protected routes to apply auth middleware

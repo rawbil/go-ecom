@@ -260,3 +260,32 @@ func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 		Data:    map[string]any{"user": user},
 	})
 }
+
+// ! FORGOT PASSWORD
+func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var params authutils.UpdateEmailParams
+
+	if err := utils.DecodeClient(r, &params); err != nil {
+		utils.ErrorHandler(err, "error decoding body", w, http.StatusBadRequest)
+		return
+	}
+
+	err := h.Service.ForgotPassword(r.Context(), params)
+	if err != nil {
+		if err == AuthUserNotFound || err == UserNotFoundError {
+			utils.ErrorHandler(err, err.Error(), w, http.StatusUnauthorized)
+			return
+		}
+
+		if err == FieldsRequiredError || err == InvalidEmailError {
+			utils.ErrorHandler(err, err.Error(), w, http.StatusBadRequest)
+			return
+		}
+		utils.ErrorHandler(err, err.Error(), w, http.StatusInternalServerError)
+		return
+	}
+
+	utils.JsonResponse(w, utils.SuccessMessage{
+		Message: "Success",
+	})
+}

@@ -11,6 +11,7 @@ import (
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
 	"github.com/rawbil/ecom2/internal/config"
+	"github.com/rawbil/ecom2/internal/utils"
 )
 
 type Service interface {
@@ -22,6 +23,7 @@ type Service interface {
 	RefreshTokens(ctx context.Context, arg authutils.RefreshTokenParam) (string, string, error)
 	UpdateMyEmail(ctx context.Context, arg authutils.UpdateEmailParams) (repository.User, error)
 	UpdateMyUsername(ctx context.Context, arg authutils.UpdateUsernameParams) (repository.User, error)
+	ForgotPassword(ctx context.Context, arg authutils.UpdateEmailParams) error
 }
 
 type Svc struct {
@@ -419,20 +421,80 @@ func (svc *Svc) UpdateMyEmail(ctx context.Context, arg authutils.UpdateEmailPara
 	return updated_user, nil
 }
 
-// ! Forgot Password
-func (svc *Svc) ForgotPassword(ctx context.Context, email string) error {
+// ! FORGOT PASSWORD
+func (svc *Svc) ForgotPassword(ctx context.Context, arg authutils.UpdateEmailParams) error {
+	//~ Validate field
+	if err := authutils.UpdateEmailValidation(arg); err != nil {
+		if authutils.ValidationErrorCheck("required", err) {
+			return FieldsRequiredError
+		}
+		if authutils.ValidationErrorCheck("email", err) {
+			return InvalidEmailError
+		}
 
-	//& Get User By email
-	user, err := svc.repository.ListUser(ctx, email)
+		return err
+	}
+
+	//~ Ensure user with email exists
+	user, err := svc.repository.ListUser(ctx, arg.Email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return UserNotFoundError
+		}
+		return err
+	}
+
+	//& PASSWORD GENERATOR
+	//&______________________
+
+	uppercase := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	lowercase := "abcdefghijklmnopqrstuvwxyz"
+	numerics := "0123456789"
+	specials := "~!@#$%^&*()_+{['\\/]}"
+	combined := uppercase + lowercase + specials + numerics
+
+	new_password := make([]byte, 0, 12)
+
+	//~ Generate first 4 characters randomly from the sets
+	random_chars, err := utils.RandomCharsFromSlice([]string{uppercase, lowercase, numerics, specials}, make([]byte, 0, 4))
 	if err != nil {
 		return err
 	}
 
-	// alphasUpper := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	// alphasLower := "abcdefghijklmnopqrstuvwxyz"
-	// numerics := "0123456789"
-	// specialChars := "!#$%^&*+_-?."
+	new_password = append(new_password, random_chars...)
 
-	// Loop through uppercase letters
+	//~ Generate the remaining characters from the combined string
+	complete_password, err := utils.RandomCharsFromString(combined, new_password)
+	if err != nil {
+		return err
+	}
+
+	//~ Shuffle the generated string
+	generated_password, err := utils.ShuffleGeneratedPass(complete_password)
+	if err != nil {
+		return err
+	}
+
+	//&_______________________
+
+	//~ Hash password
+	hashed_password, err := authutils.PasswordHash(string(generated_password))
+	if err != nil {
+		return err
+	}
+
+	//~ Update user password
+	if _, err := svc.repository.UpdatePassword(ctx, repository.UpdatePasswordParams{
+		UserID:   user.UserID,
+		Password: hashed_password,
+	}); err != nil {
+		return err
+	}
+
+	//~ Send email
+
 	return nil
+
 }
+
+
