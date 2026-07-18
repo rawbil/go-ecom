@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"database/sql"
+	"net/http"
 	"testing"
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
@@ -59,9 +60,11 @@ func (m *MockAuthService) ForgotPassword(ctx context.Context, arg authutils.Upda
 func TestRegister(t *testing.T) {
 	utils.Slogger()
 
-	tests := []struct{
-		name string
+	tests := []struct {
+		name           string
 		expectedStatus int
-		serviceErr error
-	}{}
+		serviceErr     error
+	}{
+		{name: "success response", expectedStatus: http.StatusOK},
+	}
 }
