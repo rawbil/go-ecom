@@ -6,5 +6,5 @@ import (
 
 func ErrorHandler(err error, msg string, w http.ResponseWriter, httpStatus int) {
 	http.Error(w, msg, httpStatus)
-	Log.Error("Error ocurred!", "error", err)
+	Log.Error(msg, "error", err)
 }

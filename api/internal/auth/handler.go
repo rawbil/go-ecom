@@ -2,14 +2,10 @@ package auth
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
-	"os"
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
-	"github.com/rawbil/ecom2/internal/config"
-	"github.com/rawbil/ecom2/internal/email"
 	"github.com/rawbil/ecom2/internal/utils"
 )
 
@@ -38,20 +34,12 @@ func (h *Handler) UserRegister(w http.ResponseWriter, r *http.Request) {
 
 	_, err := h.Service.UserRegister(r.Context(), registerParams)
 	if err != nil {
-		if err == FieldsRequiredError {
+		if err == FieldsRequiredError || err == InvalidEmailError || err == InvalidPasswordError || err == UsernameLenErr {
 			utils.ErrorHandler(FieldsRequiredError, err.Error(), w, http.StatusBadRequest)
 			return
 		}
-		if err == InvalidEmailError {
-			utils.ErrorHandler(InvalidEmailError, err.Error(), w, http.StatusBadRequest)
-			return
-		}
-		if err == InvalidPasswordError {
-			utils.ErrorHandler(InvalidPasswordError, err.Error(), w, http.StatusBadRequest)
-			return
-		}
 		if err == UserExistsError {
-			utils.ErrorHandler(UserExistsError, err.Error(), w, http.StatusBadRequest)
+			utils.ErrorHandler(UserExistsError, err.Error(), w, http.StatusConflict)
 			return
 		}
 		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
@@ -59,23 +47,23 @@ func (h *Handler) UserRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//& Email
-	email_data := RegisterEmailData{
-		Username: registerParams.Username,
-	}
+	// email_data := RegisterEmailData{
+	// 	Username: registerParams.Username,
+	// }
 
-	html, err := email.RenderHtml(os.DirFS("internal/email/templates"), email_data)
-	if err != nil {
-		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
-		return
-	}
+	// html, err := email.RenderHtml(os.DirFS("internal/email/templates"), email_data)
+	// if err != nil {
+	// 	utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
+	// 	return
+	// }
 
-	sender := email.NewResendSender(config.GetResendConfig().ApiKey, config.GetResendConfig().EmailFrom)
-	if err := sender.EmailConfig(registerParams.Email, "Registration Successful", html); err != nil {
-		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
-		return
-	} else {
-		log.Println("Email Sent Successfully")
-	}
+	// sender := email.NewResendSender(config.GetResendConfig().ApiKey, config.GetResendConfig().EmailFrom)
+	// if err := sender.EmailConfig(registerParams.Email, "Registration Successful", html); err != nil {
+	// 	utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
+	// 	return
+	// } else {
+	// 	log.Println("Email Sent Successfully")
+	// }
 
 	utils.JsonResponse(w, utils.SuccessMessage{
 		Message: "Registration success!",

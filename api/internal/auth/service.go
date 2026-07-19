@@ -74,6 +74,10 @@ func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserPa
 		return nil, err
 	}
 
+	if len(params.Username) < 3 {
+		return nil, UsernameLenErr
+	}
+
 	//& Ensure user does not exist before registering
 	_, err := svc.repository.ListUser(ctx, params.Email)
 	if err == nil {
@@ -496,5 +500,3 @@ func (svc *Svc) ForgotPassword(ctx context.Context, arg authutils.UpdateEmailPar
 	return nil
 
 }
-
-
