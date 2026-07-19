@@ -26,12 +26,25 @@ type Service interface {
 	ForgotPassword(ctx context.Context, arg authutils.UpdateEmailParams) error
 }
 
+type Repository interface {
+	ListUser(ctx context.Context, email string) (repository.User, error)
+	ListUserById(ctx context.Context, userID int64) (repository.User, error)
+	GetRefreshToken(ctx context.Context, userID int64) (repository.RefreshToken, error)
+	UpdateRefreshToken(ctx context.Context, arg repository.UpdateRefreshTokenParams) (sql.Result, error)
+	CreateRefreshToken(ctx context.Context, arg repository.CreateRefreshTokenParams) (sql.Result, error)
+	DeleteRefreshToken(ctx context.Context, userID int64) error
+	UpdatePassword(ctx context.Context, arg repository.UpdatePasswordParams) (sql.Result, error)
+	UpdateUserEmail(ctx context.Context, arg repository.UpdateUserEmailParams) (sql.Result, error)
+	CreateUser(ctx context.Context, arg repository.CreateUserParams) (sql.Result, error)
+	UpdateUsername(ctx context.Context, arg repository.UpdateUsernameParams) (sql.Result, error)
+}
+
 type Svc struct {
-	repository repository.Queries
+	repository Repository
 	db         *sql.DB
 }
 
-func NewService(repository repository.Queries, db *sql.DB) Service {
+func NewService(repository Repository, db *sql.DB) Service {
 	return &Svc{
 		repository: repository,
 		db:         db,
@@ -85,7 +98,7 @@ func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserPa
 	}
 
 	if !errors.Is(err, sql.ErrNoRows) {
-		return nil, UserExistsError
+		return nil, err
 	}
 
 	//& Hash Password

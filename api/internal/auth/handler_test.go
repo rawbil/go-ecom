@@ -60,7 +60,7 @@ func (m *MockAuthService) ForgotPassword(ctx context.Context, arg authutils.Upda
 }
 
 // * Register Test
-func TestRegister(t *testing.T) {
+func TestRegisterHandler(t *testing.T) {
 	utils.Slogger()
 
 	tests := []struct {
