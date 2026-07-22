@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,6 +12,7 @@ import (
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
+	"github.com/rawbil/ecom2/internal/config"
 	"github.com/rawbil/ecom2/internal/utils"
 )
 
@@ -62,6 +64,11 @@ func (m *MockAuthService) ForgotPassword(ctx context.Context, arg authutils.Upda
 // * Register Test
 func TestRegisterHandler(t *testing.T) {
 	utils.Slogger()
+
+	err := config.LoadEnv()
+	if err != nil {
+		slog.Warn("No .env file found")
+	}
 
 	tests := []struct {
 		name            string

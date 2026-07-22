@@ -3,7 +3,11 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
+	"sync"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -37,6 +41,19 @@ func InitConfig() Config {
 	}
 }
 
+var (
+	loadEnvOnce sync.Once
+	loadEnvErr  error
+)
+
+func LoadEnv() error {
+	loadEnvOnce.Do(func() {
+		loadEnvErr = godotenv.Load(envFilePath())
+	})
+
+	return loadEnvErr
+}
+
 func GetServerAddr() string {
 	return getEnv("SERVER_ADDR", ":8080")
 }
@@ -52,16 +69,38 @@ func GetJwtConfig() JwtConfig {
 func GetResendConfig() *ResendConfig {
 	return &ResendConfig{
 		ApiKey:    getEnv("RESEND_API_KEY", ""),
-		EmailFrom: getEnv("EMAIL_FROM", "bildadsimiyu6@gmail.com"),
+		EmailFrom: getEnv("RESEND_EMAIL", ""),
 	}
 }
 
 // If ok is false, return fallback
 func getEnv(key, fallback string) string {
+	_ = LoadEnv()
+
 	if value, ok := os.LookupEnv(key); ok {
 		return value
-	} else {
-		return fallback
+	}
+	return fallback
+}
+
+func envFilePath() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		return ".env"
+	}
+
+	for {
+		path := filepath.Join(dir, ".env")
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return ".env"
+		}
+
+		dir = parent
 	}
 }
 

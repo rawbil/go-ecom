@@ -11,7 +11,7 @@ type MailOptions struct {
 	Html    string
 	Subject string
 	To      string
-	To2 string
+	To2     string
 }
 
 func SendMail(m MailOptions) error {
@@ -29,9 +29,14 @@ func SendMail(m MailOptions) error {
 
 	client := resend.NewClient(api_key)
 
+	to := []string{m.To}
+	if m.To2 != "" {
+		to = append(to, m.To2)
+	}
+
 	params := &resend.SendEmailRequest{
 		From:    from,
-		To:      []string{m.To, m.To2},
+		To:      to,
 		Html:    m.Html,
 		Subject: m.Subject,
 	}
