@@ -9,12 +9,17 @@ import (
 	"runtime"
 )
 
-func RenderHtml(html string, data any) (string, error) {
+type HtmlParams struct {
+	T    string
+	Data any
+}
+
+func RenderHtml(h HtmlParams) (string, error) {
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
 		return "", errors.New("failed to resolve template path")
 	}
-	tmpl, err := template.ParseFiles(path.Join(filepath.Dir(file), "../templates", html))
+	tmpl, err := template.ParseFiles(path.Join(filepath.Dir(file), "../templates", h.T))
 
 	if err != nil {
 		return "", err
@@ -22,7 +27,7 @@ func RenderHtml(html string, data any) (string, error) {
 
 	var body bytes.Buffer
 
-	if err := tmpl.Execute(&body, data); err != nil {
+	if err := tmpl.Execute(&body, h.Data); err != nil {
 		return "", err
 	}
 

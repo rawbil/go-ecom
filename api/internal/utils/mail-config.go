@@ -11,6 +11,7 @@ type MailOptions struct {
 	Html    string
 	Subject string
 	To      string
+	To2 string
 }
 
 func SendMail(m MailOptions) error {
@@ -30,7 +31,7 @@ func SendMail(m MailOptions) error {
 
 	params := &resend.SendEmailRequest{
 		From:    from,
-		To:      []string{m.To},
+		To:      []string{m.To, m.To2},
 		Html:    m.Html,
 		Subject: m.Subject,
 	}

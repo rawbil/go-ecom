@@ -2,13 +2,10 @@ package auth
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
-	"os"
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
-	"github.com/rawbil/ecom2/internal/config"
 	"github.com/rawbil/ecom2/internal/utils"
 )
 

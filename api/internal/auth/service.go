@@ -109,6 +109,29 @@ func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserPa
 
 	params.Password = hashedPassword
 
+	//& Send email
+	email_data := struct {
+		Username string
+	}{
+		Username: params.Username,
+	}
+
+	html, err := utils.RenderHtml(utils.HtmlParams{
+		T:    "welcome.html",
+		Data: email_data,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := utils.SendMail(utils.MailOptions{
+		Html:    html,
+		To:      params.Email,
+		Subject: "Registration Successful",
+	}); err != nil {
+		return nil, err
+	}
+
 	return svc.repository.CreateUser(ctx, params)
 }
 
@@ -251,6 +274,29 @@ func (svc *Svc) PasswordReset(ctx context.Context, arg authutils.PasswordResetPa
 	if _, err := svc.repository.UpdatePassword(ctx, repository.UpdatePasswordParams{
 		Password: hashedPassword,
 		UserID:   user.UserID,
+	}); err != nil {
+		return err
+	}
+
+	//& send email
+	email_data := struct {
+		Username string
+	}{
+		Username: user.Email,
+	}
+
+	html, err := utils.RenderHtml(utils.HtmlParams{
+		Data: email_data,
+		T:    "update-password.html",
+	})
+	if err != nil {
+		return err
+	}
+
+	if err := utils.SendMail(utils.MailOptions{
+		To:      user.Email,
+		Html:    html,
+		Subject: "Password Update",
 	}); err != nil {
 		return err
 	}
@@ -400,6 +446,8 @@ func (svc *Svc) UpdateMyEmail(ctx context.Context, arg authutils.UpdateEmailPara
 		return repository.User{}, err
 	}
 
+	old_email := user.Email
+
 	//~ Validate fields
 	if err := authutils.UpdateEmailValidation(arg); err != nil {
 		if utils.ValidationErrorCheck("required", err) {
@@ -432,6 +480,31 @@ func (svc *Svc) UpdateMyEmail(ctx context.Context, arg authutils.UpdateEmailPara
 		if errors.Is(err, sql.ErrNoRows) {
 			return repository.User{}, UserNotFoundError
 		}
+		return repository.User{}, err
+	}
+
+	//& send email
+	email_data := struct {
+		OldEmail string
+		NewEmail string
+		Username string
+	}{
+		OldEmail: old_email,
+		NewEmail: updated_user.Email,
+		Username: user.Username,
+	}
+
+	html, err := utils.RenderHtml(utils.HtmlParams{
+		Data: email_data,
+		T:    "update-email.html",
+	})
+
+	if err := utils.SendMail(utils.MailOptions{
+		To:      old_email,
+		To2:     email_data.NewEmail,
+		Html:    html,
+		Subject: "Email Update",
+	}); err != nil {
 		return repository.User{}, err
 	}
 
@@ -509,6 +582,29 @@ func (svc *Svc) ForgotPassword(ctx context.Context, arg authutils.UpdateEmailPar
 	}
 
 	//~ Send email
+	email_data := struct {
+		Password string
+		Username string
+	}{
+		Password: string(generated_password),
+		Username: user.Username,
+	}
+	html, err := utils.RenderHtml(utils.HtmlParams{
+		Data: email_data,
+		T:    "forgot-password.html",
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if err := utils.SendMail(utils.MailOptions{
+		To:      arg.Email,
+		Subject: "Forgot Password?",
+		Html:    html,
+	}); err != nil {
+		return err
+	}
 
 	return nil
 
