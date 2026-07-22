@@ -73,15 +73,15 @@ func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserPa
 	//& Validate fields
 	if err := authutils.UserRegisterValidation(params); err != nil {
 		// empty fields
-		if authutils.ValidationErrorCheck("required", err) {
+		if utils.ValidationErrorCheck("required", err) {
 			return nil, FieldsRequiredError
 		}
 		// password error
-		if authutils.ValidationErrorCheck("password_format", err) || authutils.ValidationErrorCheck("min", err) || authutils.ValidationErrorCheck("max", err) {
+		if utils.ValidationErrorCheck("password_format", err) || utils.ValidationErrorCheck("min", err) || utils.ValidationErrorCheck("max", err) {
 			return nil, InvalidPasswordError
 		}
 		// email error
-		if authutils.ValidationErrorCheck("email", err) {
+		if utils.ValidationErrorCheck("email", err) {
 			return nil, InvalidEmailError
 		}
 		return nil, err
@@ -116,11 +116,11 @@ func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserPa
 func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (repository.User, string, string, error) {
 	//& validate fields
 	if err := authutils.UserLoginValidation(arg); err != nil {
-		if authutils.ValidationErrorCheck("required", err) {
+		if utils.ValidationErrorCheck("required", err) {
 			return repository.User{}, "", "", FieldsRequiredError
 		}
 
-		if authutils.ValidationErrorCheck("email", err) {
+		if utils.ValidationErrorCheck("email", err) {
 			return repository.User{}, "", "", InvalidEmailError
 		}
 
@@ -216,11 +216,11 @@ func (svc *Svc) PasswordReset(ctx context.Context, arg authutils.PasswordResetPa
 
 	//& Validate Fields
 	if err := authutils.PasswordResetValidation(arg); err != nil {
-		if authutils.ValidationErrorCheck("required", err) {
+		if utils.ValidationErrorCheck("required", err) {
 			return FieldsRequiredError
 		}
 
-		if authutils.ValidationErrorCheck("password_format", err) || authutils.ValidationErrorCheck("min", err) || authutils.ValidationErrorCheck("max", err) {
+		if utils.ValidationErrorCheck("password_format", err) || utils.ValidationErrorCheck("min", err) || utils.ValidationErrorCheck("max", err) {
 			return InvalidPasswordError
 		}
 		return err
@@ -273,7 +273,7 @@ func (svc *Svc) RefreshTokens(ctx context.Context, arg authutils.RefreshTokenPar
 
 	//& Validate field
 	if err := authutils.RefreshTokenValidation(arg); err != nil {
-		if authutils.ValidationErrorCheck("required", err) {
+		if utils.ValidationErrorCheck("required", err) {
 			return "", "", FieldsRequiredError
 		}
 		return "", "", err
@@ -356,10 +356,10 @@ func (svc *Svc) UpdateMyUsername(ctx context.Context, arg authutils.UpdateUserna
 
 	//~ Validate fields
 	if err := authutils.UpdateUsernameValidation(arg); err != nil {
-		if authutils.ValidationErrorCheck("min", err) {
+		if utils.ValidationErrorCheck("min", err) {
 			return repository.User{}, UsernameLenErr
 		}
-		if authutils.ValidationErrorCheck("required", err) {
+		if utils.ValidationErrorCheck("required", err) {
 			return repository.User{}, FieldsRequiredError
 		}
 
@@ -402,11 +402,11 @@ func (svc *Svc) UpdateMyEmail(ctx context.Context, arg authutils.UpdateEmailPara
 
 	//~ Validate fields
 	if err := authutils.UpdateEmailValidation(arg); err != nil {
-		if authutils.ValidationErrorCheck("required", err) {
+		if utils.ValidationErrorCheck("required", err) {
 			return repository.User{}, FieldsRequiredError
 		}
 
-		if authutils.ValidationErrorCheck("email", err) {
+		if utils.ValidationErrorCheck("email", err) {
 			return repository.User{}, InvalidEmailError
 		}
 		return repository.User{}, err
@@ -442,10 +442,10 @@ func (svc *Svc) UpdateMyEmail(ctx context.Context, arg authutils.UpdateEmailPara
 func (svc *Svc) ForgotPassword(ctx context.Context, arg authutils.UpdateEmailParams) error {
 	//~ Validate field
 	if err := authutils.UpdateEmailValidation(arg); err != nil {
-		if authutils.ValidationErrorCheck("required", err) {
+		if utils.ValidationErrorCheck("required", err) {
 			return FieldsRequiredError
 		}
-		if authutils.ValidationErrorCheck("email", err) {
+		if utils.ValidationErrorCheck("email", err) {
 			return InvalidEmailError
 		}
 

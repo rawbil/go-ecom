@@ -56,6 +56,10 @@ func (h *Handler) ListAllUsers(w http.ResponseWriter, r *http.Request) {
 		Role:     role,
 	})
 	if err != nil {
+		if err == InvalidEmail {
+			utils.ErrorHandler(err, err.Error(), w, http.StatusBadRequest)
+			return
+		}
 		utils.ErrorHandler(err, "oops... server error", w, http.StatusInternalServerError)
 		return
 	}

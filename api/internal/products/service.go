@@ -8,6 +8,7 @@ import (
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
+	"github.com/rawbil/ecom2/internal/utils"
 )
 
 type Service interface {
@@ -122,15 +123,15 @@ func (svc *Svc) DeleteProduct(ctx context.Context, id int64) (repository.Product
 	return product, nil
 }
 
-//! Update Product
+// ! Update Product
 func (svc *Svc) UpdateProduct(ctx context.Context, arg repository.UpdateProductParams) (sql.Result, error) {
 	//& Validate fields
 	if err := authutils.UpdateProductValidation(arg); err != nil {
-		if authutils.ValidationErrorCheck("required", err) {
+		if utils.ValidationErrorCheck("required", err) {
 			return nil, fmt.Errorf("Product id required")
 		}
 
-		if authutils.ValidationErrorCheck("min", err) {
+		if utils.ValidationErrorCheck("min", err) {
 			return nil, MinError
 		}
 

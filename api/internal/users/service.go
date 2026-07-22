@@ -7,6 +7,7 @@ import (
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
+	"github.com/rawbil/ecom2/internal/utils"
 )
 
 type Service interface {
@@ -27,11 +28,24 @@ func NewService(repository repository.Queries) Service {
 }
 
 var (
-	AuthNotFound = errors.New("User not found in Context. Try logging in again...")
-	UserNotFound = errors.New("User Not Found. Try logging in again...")
+	AuthNotFound = errors.New("user not found in Context. fry logging in again...")
+	UserNotFound = errors.New("user not found. fry logging in again...")
+	InvalidEmail = errors.New("email validation failed")
 )
 
 func (svc *Svc) ListAllUsers(ctx context.Context, arg repository.ListUsersParams) (users []repository.User, err error) {
+	_, ok := authutils.GetUserIDFromContext(ctx)
+	if !ok {
+		return []repository.User{}, AuthNotFound
+	}
+
+	//& Validate email
+	if err := ValidateUserEmail(arg); err != nil {
+		if utils.ValidationErrorCheck("email", err) {
+			return []repository.User{}, InvalidEmail
+		}
+	}
+
 	return svc.repository.ListUsers(ctx, arg)
 }
 
@@ -53,6 +67,6 @@ func (svc *Svc) DeleteUser(ctx context.Context, email string) error {
 	if _, err := svc.repository.ListUserById(ctx, user_id); err != nil {
 		return UserNotFound
 	}
-	
+
 	return svc.repository.DeleteUser(ctx, email)
 }
