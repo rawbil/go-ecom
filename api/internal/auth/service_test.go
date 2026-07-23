@@ -261,3 +261,197 @@ func TestCreateUserCall(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// * LOGIN TESTS
+func TestLoginSuccess(t *testing.T) {
+	// tests := []struct{
+	// 	name string
+	// 	validationError error
+	// }{}
+
+	mock := &MockRepository{
+		ListUserFunc: func(ctx context.Context, email string) (repository.User, error) {
+			hash, err := authutils.PasswordHash("@Admin123")
+			if err != nil {
+				return repository.User{}, err
+			}
+			return repository.User{Password: hash}, nil
+		},
+		GetRefreshTokenFunc: func(ctx context.Context, userID int64) (repository.RefreshToken, error) {
+			return repository.RefreshToken{}, nil
+		},
+		UpdateRefreshTokenFunc: func(ctx context.Context, arg repository.UpdateRefreshTokenParams) (sql.Result, error) {
+			return nil, nil
+		},
+	}
+
+	svc := NewService(mock, &sql.DB{})
+
+	_, _, _, err := svc.UserLogin(context.Background(), authutils.UserLoginParams{
+		Email:    "bildadsimiyu6@gmail.com",
+		Password: "@Admin123",
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+}
+
+func TestFieldErrors(t *testing.T) {
+	type Body struct {
+		Email    string
+		Password string
+	}
+
+	tests := []struct {
+		name          string
+		body          Body
+		expectedError error
+	}{
+		{
+			name: "required error",
+			body: Body{
+				Email:    "",
+				Password: "",
+			},
+			expectedError: FieldsRequiredError,
+		},
+		{
+			name: "invalid email error",
+			body: Body{
+				Email:    "bildad",
+				Password: "@Admin123",
+			},
+			expectedError: InvalidEmailError,
+		},
+		{
+			name: "404 error",
+			body: Body{
+				Email:    "bildadsimiyu6@gmail.com",
+				Password: "@Admin123",
+			},
+			expectedError: UserNotFoundError,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mock := &MockRepository{
+				ListUserFunc: func(ctx context.Context, email string) (repository.User, error) {
+					hash, err := authutils.PasswordHash("@Admin1233")
+					if err != nil {
+						return repository.User{}, err
+					}
+					return repository.User{Password: hash}, test.expectedError
+				},
+			}
+
+			svc := NewService(mock, &sql.DB{})
+
+			_, _, _, err := svc.UserLogin(context.Background(), authutils.UserLoginParams{
+				Email:    test.body.Email,
+				Password: test.body.Password,
+			})
+			if err != test.expectedError {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestPasswordMismatchError(t *testing.T) {
+	mock := &MockRepository{
+		ListUserFunc: func(ctx context.Context, email string) (repository.User, error) {
+			hash, err := authutils.PasswordHash("@Admin1233")
+			if err != nil {
+				return repository.User{}, err
+			}
+			return repository.User{Password: hash}, nil
+		},
+	}
+
+	svc := NewService(mock, &sql.DB{})
+
+	_, _, _, err := svc.UserLogin(context.Background(), authutils.UserLoginParams{
+		Email:    "bildadsimiyu6@gmail.com",
+		Password: "@Admin123",
+	})
+	if err != PasswordMismatchError {
+		t.Fatal(err)
+	}
+}
+
+func TestCreateRefreshTokenError(t *testing.T) {
+	// utils.Slogger()
+	// err := config.LoadEnv()
+	// if err != nil {
+	// 	utils.Log.Warn("No .env file found")
+	// }
+
+	mock := &MockRepository{
+		ListUserFunc: func(ctx context.Context, email string) (repository.User, error) {
+			hash, err := authutils.PasswordHash("@Admin123")
+			if err != nil {
+				return repository.User{}, err
+			}
+			return repository.User{
+					Password: hash,
+					UserID:   1,
+				},
+				nil
+		},
+		GetRefreshTokenFunc: func(ctx context.Context, userID int64) (repository.RefreshToken, error) {
+			return repository.RefreshToken{}, sql.ErrNoRows
+		},
+		CreateRefreshTokenFunc: func(ctx context.Context, arg repository.CreateRefreshTokenParams) (sql.Result, error) {
+			return nil, errors.New("error")
+		},
+	}
+
+	svc := NewService(mock, &sql.DB{})
+
+	_, _, _, err := svc.UserLogin(context.Background(), authutils.UserLoginParams{
+		Email:    "bildadsimiyu6@gmail.com",
+		Password: "@Admin123",
+	})
+
+	if err == nil {
+		t.Fatal(err)
+	}
+
+}
+
+func TestRefreshTokenUpdate(t *testing.T) {
+	mock := &MockRepository{
+		ListUserFunc: func(ctx context.Context, email string) (repository.User, error) {
+			hash, err := authutils.PasswordHash("@Admin123")
+			if err != nil {
+				return repository.User{}, err
+			}
+			return repository.User{
+					Password: hash,
+					UserID:   1,
+				},
+				nil
+		},
+		GetRefreshTokenFunc: func(ctx context.Context, userID int64) (repository.RefreshToken, error) {
+			return repository.RefreshToken{}, nil
+		},
+		UpdateRefreshTokenFunc: func(ctx context.Context, arg repository.UpdateRefreshTokenParams) (sql.Result, error) {
+			return nil, errors.New("error")
+		},
+	}
+
+	svc := NewService(mock, &sql.DB{})
+
+	_, _, _, err := svc.UserLogin(context.Background(), authutils.UserLoginParams{
+		Email:    "bildadsimiyu6@gmail.com",
+		Password: "@Admin123",
+	})
+
+	if err == nil {
+		t.Fatal(err)
+	}
+
+}

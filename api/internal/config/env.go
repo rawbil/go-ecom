@@ -105,6 +105,8 @@ func envFilePath() string {
 }
 
 func getIntEnv(key string, fallback int64) int64 {
+	_ = LoadEnv()
+	
 	if value, ok := os.LookupEnv(key); ok {
 		i, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {

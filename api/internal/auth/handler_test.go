@@ -179,3 +179,88 @@ func TestRegisterHandler(t *testing.T) {
 		})
 	}
 }
+
+// * Login Test
+func TestLoginHandler(t *testing.T) {
+	utils.Slogger()
+	tests := []struct {
+		name            string
+		expectedStatus  int
+		serviceErr      error
+		responseMessage string
+		body            string
+	}{
+		{
+			name:            "success",
+			expectedStatus:  http.StatusOK,
+			responseMessage: "Login Success",
+			body:            `{"email":"bildadsimiyu6@gmail.com", "password":"@Admin123"}`,
+		},
+		{
+			name:            "error decoding",
+			expectedStatus:  http.StatusBadRequest,
+			responseMessage: "error decoding body",
+			body:            `{"eemail": "bildadsimiyu6@gmail.com", "password":"@Admin123"}`,
+		},
+		{
+			name:            "invalid email error",
+			expectedStatus:  http.StatusBadRequest,
+			serviceErr:      InvalidEmailError,
+			responseMessage: InvalidEmailError.Error(),
+			body:            `{"email":"bildadsimiyu6@gmail.com", "password":"@Admin123"}`,
+		},
+		{
+			name:            "required error",
+			expectedStatus:  http.StatusBadRequest,
+			serviceErr:      FieldsRequiredError,
+			responseMessage: FieldsRequiredError.Error(),
+			body:            `{"email":"bildadsimiyu6@gmail.com", "password":"@Admin123"}`,
+		},
+		{
+			name:            "password mismatch error",
+			expectedStatus:  http.StatusBadRequest,
+			serviceErr:      PasswordMismatchError,
+			responseMessage: PasswordMismatchError.Error(),
+			body:            `{"email":"bildadsimiyu6@gmail.com", "password":"@Admin123"}`,
+		},
+		{
+			name:            "404 error",
+			expectedStatus:  http.StatusNotFound,
+			serviceErr:      UserNotFoundError,
+			responseMessage: UserNotFoundError.Error(),
+			body:            `{"email":"bildadsimiyu6@gmail.com", "password":"@Admin123"}`,
+		},
+		{
+			name:            "server error",
+			expectedStatus:  http.StatusInternalServerError,
+			serviceErr:      errors.New("server error"),
+			responseMessage: "oops... server error",
+			body:            `{"email":"bildadsimiyu6@gmail.com", "password":"@Admin123"}`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mock := &MockAuthService{
+				UserLoginFunc: func(ctx context.Context, arg authutils.UserLoginParams) (repository.User, string, string, error) {
+					return repository.User{}, "", "", test.serviceErr
+				},
+			}
+
+			h := NewHandler(mock)
+
+			req := httptest.NewRequest(http.MethodPost, "/auth/register", strings.NewReader(test.body))
+			rr := httptest.NewRecorder()
+
+			h.UserLogin(rr, req)
+
+			if rr.Code != test.expectedStatus {
+				t.Fatalf("expected %d, got %d", test.expectedStatus, rr.Code)
+			}
+
+			if !strings.Contains(rr.Body.String(), test.responseMessage) {
+				t.Fatalf("expected response message, got %s", rr.Body.String())
+			}
+		})
+	}
+}
