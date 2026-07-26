@@ -167,13 +167,13 @@ func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (r
 		return repository.User{}, "", "", errors.New("No token secret")
 	}
 
-	token, err := authutils.GenerateAuthToken(user.UserID, []byte(secret))
+	token, err := authutils.GenerateAuthToken(user.UserID, user.Role, []byte(secret))
 	if err != nil {
 		return repository.User{}, "", "", err
 	}
 
 	//& Refresh Token
-	refreshToken, issued_at, expired_at, err := authutils.GenerateRefreshToken(user.UserID, []byte(secret))
+	refreshToken, issued_at, expired_at, err := authutils.GenerateRefreshToken(user.UserID, user.Role, []byte(secret))
 	if err != nil {
 		return repository.User{}, "", "", err
 	}
@@ -211,10 +211,12 @@ func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (r
 // ! LOGOUT
 func (svc *Svc) LogoutUser(ctx context.Context) error {
 	//& Ensure authenticated user exists from context
-	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	claims, ok := authutils.GetUserFromContext(ctx)
 	if !ok {
 		return AuthNotFound
 	}
+
+	user_id := claims.UserID
 
 	//& Get User
 	user, err := svc.repository.ListUserById(ctx, user_id)
@@ -232,10 +234,12 @@ func (svc *Svc) LogoutUser(ctx context.Context) error {
 
 // ! Password Reset
 func (svc *Svc) PasswordReset(ctx context.Context, arg authutils.PasswordResetParams) error {
-	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	claims, ok := authutils.GetUserFromContext(ctx)
 	if !ok {
 		return AuthNotFound
 	}
+
+	user_id := claims.UserID
 
 	//& Validate Fields
 	if err := authutils.PasswordResetValidation(arg); err != nil {
@@ -306,10 +310,12 @@ func (svc *Svc) PasswordReset(ctx context.Context, arg authutils.PasswordResetPa
 
 // ! Refresh Tokens
 func (svc *Svc) RefreshTokens(ctx context.Context, arg authutils.RefreshTokenParam) (string, string, error) {
-	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	ctx_claims, ok := authutils.GetUserFromContext(ctx)
 	if !ok {
 		return "", "", AuthNotFound
 	}
+
+	user_id := ctx_claims.UserID
 
 	//& Ensure user exists
 	user, err := svc.repository.ListUserById(ctx, user_id)
@@ -360,12 +366,12 @@ func (svc *Svc) RefreshTokens(ctx context.Context, arg authutils.RefreshTokenPar
 		return "", "", fmt.Errorf("Secret Missing")
 	}
 
-	new_refreshToken, issuedAt, expiresAt, err := authutils.GenerateRefreshToken(user.UserID, []byte(secret))
+	new_refreshToken, issuedAt, expiresAt, err := authutils.GenerateRefreshToken(user.UserID, user.Role, []byte(secret))
 	if err != nil {
 		return "", "", err
 	}
 
-	new_auth_token, err := authutils.GenerateAuthToken(user.UserID, []byte(secret))
+	new_auth_token, err := authutils.GenerateAuthToken(user.UserID, user.Role, []byte(secret))
 	if err != nil {
 		return "", "", err
 	}
@@ -387,10 +393,12 @@ func (svc *Svc) RefreshTokens(ctx context.Context, arg authutils.RefreshTokenPar
 
 // ! UPDATE USERNAME
 func (svc *Svc) UpdateMyUsername(ctx context.Context, arg authutils.UpdateUsernameParams) (repository.User, error) {
-	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	ctx_claims, ok := authutils.GetUserFromContext(ctx)
 	if !ok {
 		return repository.User{}, AuthNotFound
 	}
+
+	user_id := ctx_claims.UserID
 
 	user, err := svc.repository.ListUserById(ctx, user_id)
 	if err != nil {
@@ -433,11 +441,12 @@ func (svc *Svc) UpdateMyUsername(ctx context.Context, arg authutils.UpdateUserna
 
 // ! UPDATE EMAIL
 func (svc *Svc) UpdateMyEmail(ctx context.Context, arg authutils.UpdateEmailParams) (repository.User, error) {
-	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	ctx_claims, ok := authutils.GetUserFromContext(ctx)
 	if !ok {
 		return repository.User{}, AuthNotFound
 	}
 
+	user_id := ctx_claims.UserID
 	user, err := svc.repository.ListUserById(ctx, user_id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

@@ -14,22 +14,29 @@ import (
 	"github.com/rawbil/ecom2/internal/config"
 )
 
-type contextKey string
-
-var userIDContextKey contextKey
-
 type Claims struct {
-	UserID int64 `json:"userID"`
+	UserID   int64  `json:"userID"`
+	UserRole string `json:"userRole"`
 	jwt.RegisteredClaims
 }
 
+type AuthContextValues struct {
+	UserID   int64  `json:"userID"`
+	UserRole string `json:"userRole"`
+}
+
+type contextKey string
+
+var UserContextKey contextKey
+
 type Middleware func(http.Handler) http.Handler
 
-func GenerateAuthToken(userID int64, secret []byte) (string, error) {
+func GenerateAuthToken(userID int64, userRole string, secret []byte) (string, error) {
 	expiration := time.Second * time.Duration(config.GetJwtConfig().JwtExpire)
 
 	claims := Claims{
-		UserID: userID,
+		UserID:   userID,
+		UserRole: userRole,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiration)),
@@ -44,12 +51,13 @@ func GenerateAuthToken(userID int64, secret []byte) (string, error) {
 	return tokenString, nil
 }
 
-func GenerateRefreshToken(userID int64, secret []byte) (string, time.Time, time.Time, error) {
+func GenerateRefreshToken(userID int64, userRole string, secret []byte) (string, time.Time, time.Time, error) {
 	issuedAt := time.Now()
 	expiresAt := issuedAt.Add(time.Hour * 24 * time.Duration(config.GetJwtConfig().RefreshTokenExpire))
 
 	claims := Claims{
-		UserID: userID,
+		UserID:   userID,
+		UserRole: userRole,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(issuedAt),
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
@@ -93,6 +101,7 @@ func AuthMiddleware(repository repository.Queries) Middleware {
 			}
 
 			//& Get user from DB with token's userID
+			//! Use redis later
 			user, err := repository.ListUserById(r.Context(), claims.UserID)
 			if err != nil {
 				log.Printf("Failed to find authenticated user: %v", err)
@@ -102,8 +111,11 @@ func AuthMiddleware(repository repository.Queries) Middleware {
 			//& Get UserID from token
 			ctx := context.WithValue(
 				r.Context(),
-				userIDContextKey,
-				user.UserID,
+				UserContextKey,
+				AuthContextValues{
+					UserID:   user.UserID,
+					UserRole: user.Role,
+				},
 			)
 
 			r = r.WithContext(ctx)
@@ -136,8 +148,8 @@ func ValidateToken(tokenString string) (*Claims, error) {
 	return claims, nil
 }
 
-func GetUserIDFromContext(ctx context.Context) (int64, bool) {
-	userID, ok := ctx.Value(userIDContextKey).(int64)
+func GetUserFromContext(ctx context.Context) (AuthContextValues, bool) {
+	claims, ok := ctx.Value(UserContextKey).(AuthContextValues)
 
-	return userID, ok
+	return claims, ok
 }

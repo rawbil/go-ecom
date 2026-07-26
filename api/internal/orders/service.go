@@ -118,10 +118,12 @@ func (svc *Svc) CreateOrder(ctx context.Context, params CreateOrderParams) (resu
 // ! GET MY ORDER
 func (svc *Svc) GetMyOrder(ctx context.Context) ([]repository.IdUserOrderDetailsRow, error) {
 	//& Ensure authenticated user exists from context
-	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	ctx_claims, ok := authutils.GetUserFromContext(ctx)
 	if !ok {
 		return []repository.IdUserOrderDetailsRow{}, AuthNotFound
 	}
+
+	user_id := ctx_claims.UserID
 	return svc.repository.IdUserOrderDetails(ctx, user_id)
 }
 
@@ -133,10 +135,13 @@ func (svc *Svc) GetAllOrders(ctx context.Context) ([]repository.AllUsersOrderDet
 // ! CANCEL ORDER
 func (svc *Svc) CancelOrder(ctx context.Context, orderID int64) (sql.Result, error) {
 	//& Ensure authenticated user exists from context
-	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	ctx_claims, ok := authutils.GetUserFromContext(ctx)
 	if !ok {
 		return nil, AuthNotFound
 	}
+
+	user_id := ctx_claims.UserID
+
 	//& Get Order
 	order, err := svc.repository.GetOrderById(ctx, repository.GetOrderByIdParams{
 		UserID:  user_id,

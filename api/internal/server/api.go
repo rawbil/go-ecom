@@ -85,11 +85,11 @@ func (app *Application) Mount() http.Handler {
 				//? GET /users/find-one
 				r.Get("/one", usersHandler.ListUser)
 				//? GET /users/find-all
-				r.Get("/", usersHandler.ListAllUsers)
+				r.With(middlewarefns.RoleMiddleware("admin")).Get("/find-all", usersHandler.ListAllUsers)
 				//? POST /users/create
-				r.Post("/create", usersHandler.CreateUser)
+				r.With(middlewarefns.RoleMiddleware("admin")).Post("/create", usersHandler.CreateUser)
 				//?DELETE /users/delete
-				r.Delete("/delete", usersHandler.DeleteUser)
+				r.With(middlewarefns.RoleMiddleware("admin")).Delete("/delete", usersHandler.DeleteUser)
 			})
 
 			// ! /api/v1/products
@@ -99,11 +99,11 @@ func (app *Application) Mount() http.Handler {
 				//? GET /products/id
 				r.Get("/id", productsHandler.ListProduct)
 				//? POST /products
-				r.Post("/", productsHandler.CreateProduct)
+				r.With(middlewarefns.RoleMiddleware("admin")).Post("/", productsHandler.CreateProduct)
 				//? DELETE /products
-				r.Delete("/delete", productsHandler.DeleteProduct)
+				r.With(middlewarefns.RoleMiddleware("admin")).Delete("/delete", productsHandler.DeleteProduct)
 				//? PATCH /products
-				r.Patch("/", productsHandler.UpdateProduct)
+				r.With(middlewarefns.RoleMiddleware("admin")).Patch("/", productsHandler.UpdateProduct)
 			})
 
 			//! /api/v1/orders

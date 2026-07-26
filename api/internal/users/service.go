@@ -34,15 +34,17 @@ var (
 )
 
 func (svc *Svc) ListAllUsers(ctx context.Context, arg repository.ListUsersParams) (users []repository.User, err error) {
-	_, ok := authutils.GetUserIDFromContext(ctx)
+	_, ok := authutils.GetUserFromContext(ctx)
 	if !ok {
 		return []repository.User{}, AuthNotFound
 	}
 
 	//& Validate email
-	if err := ValidateUserEmail(arg); err != nil {
-		if utils.ValidationErrorCheck("email", err) {
-			return []repository.User{}, InvalidEmail
+	if arg.Email != "" {
+		if err := ValidateUserEmail(arg); err != nil {
+			if utils.ValidationErrorCheck("email", err) {
+				return []repository.User{}, InvalidEmail
+			}
 		}
 	}
 
@@ -58,10 +60,12 @@ func (svc *Svc) CreateUser(ctx context.Context, params repository.CreateUserPara
 }
 
 func (svc *Svc) DeleteUser(ctx context.Context, email string) error {
-	user_id, ok := authutils.GetUserIDFromContext(ctx)
+	ctx_claims, ok := authutils.GetUserFromContext(ctx)
 	if !ok {
 		return AuthNotFound
 	}
+
+	user_id := ctx_claims.UserID
 
 	//& Ensure user exists
 	if _, err := svc.repository.ListUserById(ctx, user_id); err != nil {
