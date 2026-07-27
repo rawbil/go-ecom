@@ -165,3 +165,15 @@ WHERE NOT EXISTS(
     FROM order_items
     WHERE order_items.order_id = orders.order_id
 );
+
+-- name: GetPermissionID :one
+SELECT id FROM user_permissions
+WHERE permission = ?;
+
+-- name: GetRoleID :one
+SELECT id FROM user_roles
+WHERE role = ?;
+
+-- name: CreateUserRole :execresult
+INSERT INTO roles(user_id, role_id)
+VALUES (?, ?);

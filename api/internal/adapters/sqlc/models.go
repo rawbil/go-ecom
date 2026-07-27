@@ -102,6 +102,16 @@ type RefreshToken struct {
 	UserID       int64     `json:"user_id"`
 }
 
+type Role struct {
+	UserID int64 `json:"user_id"`
+	RoleID int64 `json:"role_id"`
+}
+
+type RolePermission struct {
+	RoleID       int64 `json:"role_id"`
+	PermissionID int64 `json:"permission_id"`
+}
+
 type User struct {
 	UserID    int64     `json:"user_id"`
 	Username  string    `json:"username"`
@@ -110,4 +120,14 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Role      string    `json:"role"`
+}
+
+type UserPermission struct {
+	ID         int64  `json:"id"`
+	Permission string `json:"permission"`
+}
+
+type UserRole struct {
+	ID   int64  `json:"id"`
+	Role string `json:"role"`
 }

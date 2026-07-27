@@ -158,6 +158,20 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Res
 	return q.db.ExecContext(ctx, createUser, arg.Username, arg.Email, arg.Password)
 }
 
+const createUserRole = `-- name: CreateUserRole :execresult
+INSERT INTO roles(user_id, role_id)
+VALUES (?, ?)
+`
+
+type CreateUserRoleParams struct {
+	UserID int64 `json:"user_id"`
+	RoleID int64 `json:"role_id"`
+}
+
+func (q *Queries) CreateUserRole(ctx context.Context, arg CreateUserRoleParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createUserRole, arg.UserID, arg.RoleID)
+}
+
 const deleteOrderItemByProductID = `-- name: DeleteOrderItemByProductID :exec
 DELETE FROM order_items
 WHERE product_id = ?
@@ -309,6 +323,18 @@ func (q *Queries) GetPaidProductOrders(ctx context.Context, productID int64) ([]
 	return items, nil
 }
 
+const getPermissionID = `-- name: GetPermissionID :one
+SELECT id FROM user_permissions
+WHERE permission = ?
+`
+
+func (q *Queries) GetPermissionID(ctx context.Context, permission string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getPermissionID, permission)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getRefreshToken = `-- name: GetRefreshToken :one
 SELECT id, refresh_token, issued_at, expires_at, user_id FROM refresh_tokens
 WHERE user_id = ?
@@ -325,6 +351,18 @@ func (q *Queries) GetRefreshToken(ctx context.Context, userID int64) (RefreshTok
 		&i.UserID,
 	)
 	return i, err
+}
+
+const getRoleID = `-- name: GetRoleID :one
+SELECT id FROM user_roles
+WHERE role = ?
+`
+
+func (q *Queries) GetRoleID(ctx context.Context, role string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getRoleID, role)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const idUserOrderDetails = `-- name: IdUserOrderDetails :many

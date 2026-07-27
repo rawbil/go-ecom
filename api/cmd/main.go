@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"os"
 
 	"github.com/go-sql-driver/mysql"
+	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	"github.com/rawbil/ecom2/internal/config"
 	db "github.com/rawbil/ecom2/internal/database"
+	"github.com/rawbil/ecom2/internal/seed"
 	"github.com/rawbil/ecom2/internal/server"
+	"github.com/rawbil/ecom2/internal/utils"
 )
 
 func main() {
@@ -50,6 +54,21 @@ func main() {
 	app := server.Application{
 		Config: config,
 		DB:     db,
+	}
+
+	// Seed functions
+	if err := seed.SeedPermissions(db); err != nil {
+		utils.Log.Error(err.Error())
+		return
+	}
+	if err := seed.SeedRoles(db); err != nil {
+		utils.Log.Error(err.Error())
+		return
+	}
+
+	if err := seed.SeedRolePermissions(context.Background(), *repository.New(app.DB), db); err != nil {
+		utils.Log.Error(err.Error())
+		return
 	}
 
 	m := app.Mount()

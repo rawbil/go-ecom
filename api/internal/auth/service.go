@@ -10,6 +10,7 @@ import (
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
+	"github.com/rawbil/ecom2/internal/authorization"
 	"github.com/rawbil/ecom2/internal/config"
 	"github.com/rawbil/ecom2/internal/utils"
 )
@@ -37,6 +38,9 @@ type Repository interface {
 	UpdateUserEmail(ctx context.Context, arg repository.UpdateUserEmailParams) (sql.Result, error)
 	CreateUser(ctx context.Context, arg repository.CreateUserParams) (sql.Result, error)
 	UpdateUsername(ctx context.Context, arg repository.UpdateUsernameParams) (sql.Result, error)
+	GetRoleID(ctx context.Context, role string) (int64, error)
+	GetPermissionID(ctx context.Context, permission string) (int64, error)
+	CreateUserRole(ctx context.Context, arg repository.CreateUserRoleParams) (sql.Result, error)
 }
 
 type Svc struct {
@@ -132,7 +136,44 @@ func (svc *Svc) UserRegister(ctx context.Context, params repository.CreateUserPa
 		return nil, err
 	}
 
-	return svc.repository.CreateUser(ctx, params)
+	//& Start transaction for saving user and assigning role
+	tx, err := svc.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	qtx := repository.New(tx)
+
+	result, err := qtx.CreateUser(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	userID, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+
+	//& Save user role
+	role_id, err := qtx.GetRoleID(ctx, authorization.RoleUser)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := qtx.CreateUserRole(ctx, repository.CreateUserRoleParams{
+		UserID: userID,
+		RoleID: role_id,
+	}); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // ! LOGIN

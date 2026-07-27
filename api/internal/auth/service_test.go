@@ -21,6 +21,9 @@ type MockRepository struct {
 	UpdateUserEmailFunc    func(ctx context.Context, arg repository.UpdateUserEmailParams) (sql.Result, error)
 	CreateUserFunc         func(ctx context.Context, arg repository.CreateUserParams) (sql.Result, error)
 	UpdateUsernameFunc     func(ctx context.Context, arg repository.UpdateUsernameParams) (sql.Result, error)
+	GetRoleIDFunc          func(ctx context.Context, role string) (int64, error)
+	GetPermissionIDFunc    func(ctx context.Context, permission string) (int64, error)
+	CreateUserRoleFunc     func(ctx context.Context, arg repository.CreateUserRoleParams) (sql.Result, error)
 }
 
 func (m *MockRepository) ListUser(ctx context.Context, email string) (repository.User, error) {
@@ -61,6 +64,18 @@ func (m *MockRepository) CreateUser(ctx context.Context, arg repository.CreateUs
 
 func (m *MockRepository) UpdateUsername(ctx context.Context, arg repository.UpdateUsernameParams) (sql.Result, error) {
 	return m.UpdateUsernameFunc(ctx, arg)
+}
+
+func (m *MockRepository) GetRoleID(ctx context.Context, role string) (int64, error) {
+	return m.GetRoleIDFunc(ctx, role)
+}
+
+func (m *MockRepository) GetPermissionID(ctx context.Context, permission string) (int64, error) {
+	return m.GetPermissionIDFunc(ctx, permission)
+}
+
+func (m *MockRepository) CreateUserRole(ctx context.Context, arg repository.CreateUserRoleParams) (sql.Result, error) {
+	return m.CreateUserRoleFunc(ctx, arg)
 }
 
 // ! Test Successful Registration
