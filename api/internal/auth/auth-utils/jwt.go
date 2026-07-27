@@ -15,14 +15,13 @@ import (
 )
 
 type Claims struct {
-	UserID   int64  `json:"userID"`
-	UserRole string `json:"userRole"`
+	UserID int64 `json:"userID"`
 	jwt.RegisteredClaims
 }
 
 type AuthContextValues struct {
-	UserID   int64  `json:"userID"`
-	UserRole string `json:"userRole"`
+	UserID int64 `json:"userID"`
+	// UserRole string `json:"userRole"`
 }
 
 type contextKey string
@@ -31,12 +30,11 @@ var UserContextKey contextKey
 
 type Middleware func(http.Handler) http.Handler
 
-func GenerateAuthToken(userID int64, userRole string, secret []byte) (string, error) {
+func GenerateAuthToken(userID int64, secret []byte) (string, error) {
 	expiration := time.Second * time.Duration(config.GetJwtConfig().JwtExpire)
 
 	claims := Claims{
-		UserID:   userID,
-		UserRole: userRole,
+		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiration)),
@@ -51,13 +49,12 @@ func GenerateAuthToken(userID int64, userRole string, secret []byte) (string, er
 	return tokenString, nil
 }
 
-func GenerateRefreshToken(userID int64, userRole string, secret []byte) (string, time.Time, time.Time, error) {
+func GenerateRefreshToken(userID int64, secret []byte) (string, time.Time, time.Time, error) {
 	issuedAt := time.Now()
 	expiresAt := issuedAt.Add(time.Hour * 24 * time.Duration(config.GetJwtConfig().RefreshTokenExpire))
 
 	claims := Claims{
-		UserID:   userID,
-		UserRole: userRole,
+		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(issuedAt),
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
@@ -113,8 +110,7 @@ func AuthMiddleware(repository repository.Queries) Middleware {
 				r.Context(),
 				UserContextKey,
 				AuthContextValues{
-					UserID:   user.UserID,
-					UserRole: user.Role,
+					UserID: user.UserID,
 				},
 			)
 

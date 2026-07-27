@@ -17,6 +17,7 @@ func SeedPermissions(db *sql.DB) error {
 		authorization.PermissionDeleteProduct,
 		authorization.PermissionCreateOrder,
 		authorization.PermissionViewOrder,
+		authorization.PermissionViewAllOrders,
 		authorization.PermissionCancelOrder,
 	}
 

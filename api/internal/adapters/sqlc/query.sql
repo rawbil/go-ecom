@@ -4,7 +4,7 @@ SELECT * FROM users
 WHERE (
     (sqlc.arg(username) = '' OR username LIKE CONCAT('%', sqlc.arg(username),'%')) 
     AND (sqlc.arg(email) = '' OR email LIKE CONCAT('%', sqlc.arg(email), '%')) 
-    AND (sqlc.arg(role) OR role LIKE CONCAT('%', sqlc.arg(role), '%'))
+    AND (sqlc.arg(role) = '' OR role LIKE CONCAT('%', sqlc.arg(role), '%'))
 )
 ORDER BY updated_at DESC
 LIMIT ?
@@ -177,3 +177,11 @@ WHERE role = ?;
 -- name: CreateUserRole :execresult
 INSERT INTO roles(user_id, role_id)
 VALUES (?, ?);
+
+-- name: GetUserPermissions :many
+SELECT up.permission FROM user_permissions up
+JOIN role_permissions rp
+ON up.id = rp.permission_id
+JOIN roles ur
+ON ur.role_id = rp.role_id
+WHERE ur.user_id = ?;

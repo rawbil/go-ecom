@@ -208,13 +208,13 @@ func (svc *Svc) UserLogin(ctx context.Context, arg authutils.UserLoginParams) (r
 		return repository.User{}, "", "", errors.New("No token secret")
 	}
 
-	token, err := authutils.GenerateAuthToken(user.UserID, user.Role, []byte(secret))
+	token, err := authutils.GenerateAuthToken(user.UserID, []byte(secret))
 	if err != nil {
 		return repository.User{}, "", "", err
 	}
 
 	//& Refresh Token
-	refreshToken, issued_at, expired_at, err := authutils.GenerateRefreshToken(user.UserID, user.Role, []byte(secret))
+	refreshToken, issued_at, expired_at, err := authutils.GenerateRefreshToken(user.UserID, []byte(secret))
 	if err != nil {
 		return repository.User{}, "", "", err
 	}
@@ -407,12 +407,12 @@ func (svc *Svc) RefreshTokens(ctx context.Context, arg authutils.RefreshTokenPar
 		return "", "", fmt.Errorf("Secret Missing")
 	}
 
-	new_refreshToken, issuedAt, expiresAt, err := authutils.GenerateRefreshToken(user.UserID, user.Role, []byte(secret))
+	new_refreshToken, issuedAt, expiresAt, err := authutils.GenerateRefreshToken(user.UserID, []byte(secret))
 	if err != nil {
 		return "", "", err
 	}
 
-	new_auth_token, err := authutils.GenerateAuthToken(user.UserID, user.Role, []byte(secret))
+	new_auth_token, err := authutils.GenerateAuthToken(user.UserID, []byte(secret))
 	if err != nil {
 		return "", "", err
 	}

@@ -11,6 +11,7 @@ import (
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	"github.com/rawbil/ecom2/internal/auth"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
+	"github.com/rawbil/ecom2/internal/authorization"
 	"github.com/rawbil/ecom2/internal/middlewarefns"
 	"github.com/rawbil/ecom2/internal/orders"
 	"github.com/rawbil/ecom2/internal/products"
@@ -85,11 +86,11 @@ func (app *Application) Mount() http.Handler {
 				//? GET /users/find-one
 				r.Get("/one", usersHandler.ListUser)
 				//? GET /users/find-all
-				r.With(middlewarefns.RoleMiddleware("admin")).Get("/find-all", usersHandler.ListAllUsers)
+				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionViewUsers)).Get("/find-all", usersHandler.ListAllUsers)
 				//? POST /users/create
-				r.With(middlewarefns.RoleMiddleware("admin")).Post("/create", usersHandler.CreateUser)
+				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionCreateUser)).Post("/create", usersHandler.CreateUser)
 				//?DELETE /users/delete
-				r.With(middlewarefns.RoleMiddleware("admin")).Delete("/delete", usersHandler.DeleteUser)
+				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionDeleteUser)).Delete("/delete", usersHandler.DeleteUser)
 			})
 
 			// ! /api/v1/products
@@ -99,23 +100,23 @@ func (app *Application) Mount() http.Handler {
 				//? GET /products/id
 				r.Get("/id", productsHandler.ListProduct)
 				//? POST /products
-				r.With(middlewarefns.RoleMiddleware("admin")).Post("/", productsHandler.CreateProduct)
+				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionCreateProduct)).Post("/", productsHandler.CreateProduct)
 				//? DELETE /products
-				r.With(middlewarefns.RoleMiddleware("admin")).Delete("/delete", productsHandler.DeleteProduct)
+				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionDeleteProduct)).Delete("/delete", productsHandler.DeleteProduct)
 				//? PATCH /products
-				r.With(middlewarefns.RoleMiddleware("admin")).Patch("/", productsHandler.UpdateProduct)
+				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionUpdateProduct)).Patch("/", productsHandler.UpdateProduct)
 			})
 
 			//! /api/v1/orders
 			r.Route("/orders", func(r chi.Router) {
 				//? POST /orders
-				r.Post("/", orderHandler.CreateOrder)
+				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionCreateOrder)).Post("/", orderHandler.CreateOrder)
 				//? GET /orders/my-orders
-				r.Get("/my-orders", orderHandler.GetMyOrder)
+				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionViewOrder)).Get("/my-orders", orderHandler.GetMyOrder)
 				//? GET /orders/all
-				r.Get("/all", orderHandler.GetAllOrders)
+				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionViewAllOrders)).Get("/all", orderHandler.GetAllOrders)
 				//? POST /orders/id
-				r.Post("/cancel", orderHandler.CancleOrder)
+				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionCancelOrder)).Post("/cancel", orderHandler.CancleOrder)
 			})
 		})
 

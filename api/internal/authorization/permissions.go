@@ -10,14 +10,15 @@ const (
 	PermissionUpdateProduct = "products:update"
 	PermissionDeleteProduct = "products:delete"
 
-	PermissionCreateOrder = "orders:create"
-	PermissionViewOrder   = "orders:view"
-	PermissionCancelOrder = "orders:cancel"
+	PermissionCreateOrder   = "orders:create"
+	PermissionViewOrder     = "orders:view"
+	PermissionViewAllOrders = "orders:viewall"
+	PermissionCancelOrder   = "orders:cancel"
 )
 
 const (
-	RoleAdmin = "admin"
-	RoleUser  = "user"
+	RoleAdmin = "Admin"
+	RoleUser  = "User"
 )
 
 var RolePermissions = map[string][]string{
@@ -31,6 +32,7 @@ var RolePermissions = map[string][]string{
 		PermissionDeleteProduct,
 		PermissionCreateOrder,
 		PermissionViewOrder,
+		PermissionViewAllOrders,
 		PermissionCancelOrder,
 	},
 	RoleUser: {

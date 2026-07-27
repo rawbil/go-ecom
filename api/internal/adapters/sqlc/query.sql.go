@@ -365,6 +365,38 @@ func (q *Queries) GetRoleID(ctx context.Context, role string) (int64, error) {
 	return id, err
 }
 
+const getUserPermissions = `-- name: GetUserPermissions :many
+SELECT up.permission FROM user_permissions up
+JOIN role_permissions rp
+ON up.id = rp.permission_id
+JOIN roles ur
+ON ur.role_id = rp.role_id
+WHERE ur.user_id = ?
+`
+
+func (q *Queries) GetUserPermissions(ctx context.Context, userID int64) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getUserPermissions, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var permission string
+		if err := rows.Scan(&permission); err != nil {
+			return nil, err
+		}
+		items = append(items, permission)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const idUserOrderDetails = `-- name: IdUserOrderDetails :many
 SELECT orders.order_id, orders.order_status as order_status, orders.created_at, order_items.total_price, order_items.quantity AS order_quantity, product_name, products.price AS product_price, products.quantity AS available_products, username, email FROM orders
 INNER JOIN order_items

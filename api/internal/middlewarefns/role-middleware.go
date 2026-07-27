@@ -4,23 +4,30 @@ import (
 	"errors"
 	"net/http"
 
+	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
 	"github.com/rawbil/ecom2/internal/utils"
 )
 
 type Middleware func(http.Handler) http.Handler
 
-func RoleMiddleware(roles ...string) Middleware {
+func RoleMiddleware(repository repository.Queries, roles ...string) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			//& Get role from context
 			claims, ok := authutils.GetUserFromContext(r.Context())
 			if !ok {
-				utils.Log.Error("error getting context for role middleware")
+				utils.ErrorHandler(errors.New("error getting context for role middleware"), "error getting context for role middleware", w, http.StatusUnauthorized)
 				return
 			}
 
-			user_role := claims.UserRole
+			user, err := repository.ListUserById(r.Context(), claims.UserID)
+			if err != nil {
+				utils.ErrorHandler(err, "Failed to fetch user", w, http.StatusUnauthorized)
+				return
+			}
+
+			user_role := user.Role
 
 			allowed_roles := make(map[string]bool)
 
