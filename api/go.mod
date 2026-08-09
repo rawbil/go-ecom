@@ -10,6 +10,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/resend/resend-go/v3 v3.9.2
 	golang.org/x/crypto v0.52.0
+	golang.org/x/time v0.15.0
 )
 
 require (

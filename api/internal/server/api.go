@@ -17,6 +17,7 @@ import (
 	"github.com/rawbil/ecom2/internal/products"
 	"github.com/rawbil/ecom2/internal/users"
 	"github.com/rawbil/ecom2/internal/utils"
+	"golang.org/x/time/rate"
 )
 
 type Application struct {
@@ -56,25 +57,29 @@ func (app *Application) Mount() http.Handler {
 	orderService := orders.NewService(*repo, app.DB)
 	orderHandler := orders.NewHandler(orderService)
 
+	rl := middlewarefns.NewRateLimiter()
+	// run rate limiter cleanup every 10 minutes
+	go rl.StartCleanup(10*time.Minute, 30*time.Minute)
+
 	//* Root route
 	r.Route("/api/v1", func(r chi.Router) {
 		// ! /api/v1/auth
 		r.Route("/auth", func(r chi.Router) {
 			//?POST /auth/register
-			r.Post("/register", authHandler.UserRegister)
+			r.With(rl.Limit(rate.Limit(5.0/60.0), 5)).Post("/register", authHandler.UserRegister)
 			//? POST /auth/login
-			r.Post("/login", authHandler.UserLogin)
+			r.With(rl.Limit(rate.Limit(5.0/60.0), 5)).Post("/login", authHandler.UserLogin)
 			//? POST /auth/logout
-			r.With(authutils.AuthMiddleware(*repo)).Post("/logout", authHandler.UserLogout)
+			r.With(authutils.AuthMiddleware(*repo)).With(rl.Limit(rate.Limit(5.0/60.0), 5)).Post("/logout", authHandler.UserLogout)
 			//?POST /auth/password-reset
-			r.With(authutils.AuthMiddleware(*repo)).Post("/password-reset", authHandler.PasswordReset)
+			r.With(authutils.AuthMiddleware(*repo)).With(rl.Limit(rate.Limit(5.0/60.0), 5)).Post("/password-reset", authHandler.PasswordReset)
 			//? POST /auth/refresh-tokens
-			r.With(authutils.AuthMiddleware(*repo)).Post("/refresh-tokens", authHandler.RefreshTokens)
+			r.With(authutils.AuthMiddleware(*repo)).With(rl.Limit(rate.Limit(5.0/60.0), 5)).Post("/refresh-tokens", authHandler.RefreshTokens)
 			//? POST /auth/update-my-email
-			r.With(authutils.AuthMiddleware(*repo)).Post("/update-my-email", authHandler.UpdateUserEmail)
+			r.With(authutils.AuthMiddleware(*repo)).With(rl.Limit(rate.Limit(5.0/60.0), 5)).Post("/update-my-email", authHandler.UpdateUserEmail)
 			//? POST /auth/update-my-username
-			r.With(authutils.AuthMiddleware(*repo)).Post("/update-my-username", authHandler.UpdateUsername)
-			r.Post("/forgot-password", authHandler.ForgotPassword)
+			r.With(authutils.AuthMiddleware(*repo)).With(rl.Limit(rate.Limit(5.0/60.0), 5)).Post("/update-my-username", authHandler.UpdateUsername)
+			r.With(rl.Limit(rate.Limit(100.0/60.0), 5)).Post("/forgot-password", authHandler.ForgotPassword)
 		})
 
 		//& Group protected routes to apply auth middleware
@@ -84,39 +89,39 @@ func (app *Application) Mount() http.Handler {
 			// ! /api/v1/users
 			r.Route("/users", func(r chi.Router) {
 				//? GET /users/find-one
-				r.Get("/one", usersHandler.ListUser)
+				r.With(rl.Limit(rate.Limit(5.0/60.0), 5)).Get("/one", usersHandler.ListUser)
 				//? GET /users/find-all
-				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionViewUsers)).Get("/find-all", usersHandler.ListAllUsers)
+				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionViewUsers)).With(rl.Limit(rate.Limit(5.0/60.0), 5)).Get("/find-all", usersHandler.ListAllUsers)
 				//? POST /users/create
-				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionCreateUser)).Post("/create", usersHandler.CreateUser)
+				r.With(rl.Limit(rate.Limit(5.0/60.0), 5)).With(authorization.PermissionMiddleware(*repo, authorization.PermissionCreateUser)).Post("/create", usersHandler.CreateUser)
 				//?DELETE /users/delete
-				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionDeleteUser)).Delete("/delete", usersHandler.DeleteUser)
+				r.With(rl.Limit(rate.Limit(5.0/60.0), 5)).With(authorization.PermissionMiddleware(*repo, authorization.PermissionDeleteUser)).Delete("/delete", usersHandler.DeleteUser)
 			})
 
 			// ! /api/v1/products
 			r.Route("/products", func(r chi.Router) {
 				//? GET /products
-				r.Get("/", productsHandler.ListProducts)
+				r.With(rl.Limit(rate.Limit(5.0/60.0), 5)).Get("/", productsHandler.ListProducts)
 				//? GET /products/id
-				r.Get("/id", productsHandler.ListProduct)
+				r.With(rl.Limit(rate.Limit(5.0/60.0), 5)).Get("/id", productsHandler.ListProduct)
 				//? POST /products
-				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionCreateProduct)).Post("/", productsHandler.CreateProduct)
+				r.With(rl.Limit(rate.Limit(5.0/60.0), 5)).With(authorization.PermissionMiddleware(*repo, authorization.PermissionCreateProduct)).Post("/", productsHandler.CreateProduct)
 				//? DELETE /products
-				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionDeleteProduct)).Delete("/delete", productsHandler.DeleteProduct)
+				r.With(rl.Limit(rate.Limit(5.0/60.0), 5)).With(authorization.PermissionMiddleware(*repo, authorization.PermissionDeleteProduct)).Delete("/delete", productsHandler.DeleteProduct)
 				//? PATCH /products
-				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionUpdateProduct)).Patch("/", productsHandler.UpdateProduct)
+				r.With(rl.Limit(rate.Limit(5.0/60.0), 5)).With(authorization.PermissionMiddleware(*repo, authorization.PermissionUpdateProduct)).Patch("/", productsHandler.UpdateProduct)
 			})
 
 			//! /api/v1/orders
 			r.Route("/orders", func(r chi.Router) {
 				//? POST /orders
-				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionCreateOrder)).Post("/", orderHandler.CreateOrder)
+				r.With(rl.Limit(rate.Limit(5.0/60.0), 5)).With(authorization.PermissionMiddleware(*repo, authorization.PermissionCreateOrder)).Post("/", orderHandler.CreateOrder)
 				//? GET /orders/my-orders
-				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionViewOrder)).Get("/my-orders", orderHandler.GetMyOrder)
+				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionViewOrder)).With(rl.Limit(rate.Limit(5.0/60.0), 5)).Get("/my-orders", orderHandler.GetMyOrder)
 				//? GET /orders/all
-				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionViewAllOrders)).Get("/all", orderHandler.GetAllOrders)
+				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionViewAllOrders)).With(rl.Limit(rate.Limit(5.0/60.0), 5)).Get("/all", orderHandler.GetAllOrders)
 				//? POST /orders/id
-				r.With(authorization.PermissionMiddleware(*repo, authorization.PermissionCancelOrder)).Post("/cancel", orderHandler.CancleOrder)
+				r.With(rl.Limit(rate.Limit(5.0/60.0), 5)).With(authorization.PermissionMiddleware(*repo, authorization.PermissionCancelOrder)).Post("/cancel", orderHandler.CancleOrder)
 			})
 		})
 

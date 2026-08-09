@@ -58,16 +58,16 @@ func main() {
 
 	// Seed functions
 	if err := seed.SeedPermissions(db); err != nil {
-		utils.Log.Error(err.Error())
+		utils.Log.Error(err.Error(), "error", err)
 		return
 	}
 	if err := seed.SeedRoles(db); err != nil {
-		utils.Log.Error(err.Error())
+		utils.Log.Error(err.Error(), "error", err)
 		return
 	}
 
 	if err := seed.SeedRolePermissions(context.Background(), *repository.New(app.DB), db); err != nil {
-		utils.Log.Error(err.Error())
+		utils.Log.Error(err.Error(), "error", err)
 		return
 	}
 

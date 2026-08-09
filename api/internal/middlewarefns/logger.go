@@ -8,10 +8,9 @@ import (
 	"github.com/rawbil/ecom2/internal/utils"
 )
 
-type mw func(http.Handler) http.Handler
 
 // ! Logger
-func Logger() mw {
+func Logger() Mdlw {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

@@ -184,4 +184,4 @@ JOIN role_permissions rp
 ON up.id = rp.permission_id
 JOIN roles ur
 ON ur.role_id = rp.role_id
-WHERE ur.user_id = ?;
+WHERE ur.user_id = ?; 
