@@ -30,6 +30,10 @@ type ResendConfig struct {
 	EmailFrom string
 }
 
+type ServerConfig struct {
+	APPENV string
+}
+
 func InitConfig() Config {
 	return Config{
 		Port:       getEnv("PORT", "3306"),
@@ -73,6 +77,12 @@ func GetResendConfig() *ResendConfig {
 	}
 }
 
+func GetServerConfigFunc() *ServerConfig {
+	return &ServerConfig{
+		APPENV: getEnv("APP_ENV", "dev"),
+	}
+}
+
 // If ok is false, return fallback
 func getEnv(key, fallback string) string {
 	_ = LoadEnv()
@@ -106,7 +116,7 @@ func envFilePath() string {
 
 func getIntEnv(key string, fallback int64) int64 {
 	_ = LoadEnv()
-	
+
 	if value, ok := os.LookupEnv(key); ok {
 		i, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {

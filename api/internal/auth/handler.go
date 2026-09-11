@@ -6,6 +6,7 @@ import (
 
 	repository "github.com/rawbil/ecom2/internal/adapters/sqlc"
 	authutils "github.com/rawbil/ecom2/internal/auth/auth-utils"
+	"github.com/rawbil/ecom2/internal/config"
 	"github.com/rawbil/ecom2/internal/utils"
 )
 
@@ -78,9 +79,20 @@ func (h *Handler) UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rt_cookie := http.Cookie{
+		Name:     "__refresh_token__",
+		Value:    refreshToken,
+		MaxAge:   3600, // 1 hour in seconds
+		Path:     "/",
+		HttpOnly: true,                                         // Prevents client-side JS access
+		Secure:   config.GetServerConfigFunc().APPENV != "dev", // true in prod (SET APP_ENV=prod)
+	}
+
+	http.SetCookie(w, &rt_cookie)
+
 	utils.JsonResponse(w, utils.SuccessMessage{
 		Message: "Login Success!",
-		Data:    map[string]any{"user": user, "access_token": token, "refresh_token": refreshToken},
+		Data:    map[string]any{"user": user, "access_token": token},
 	})
 }
 
