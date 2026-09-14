@@ -82,7 +82,7 @@ func (h *Handler) UserLogin(w http.ResponseWriter, r *http.Request) {
 	rt_cookie := http.Cookie{
 		Name:     "__refresh_token__",
 		Value:    refreshToken,
-		MaxAge:   3600, // 1 hour in seconds
+		MaxAge:   7 * 24 * 60, // 7 days in seconds
 		Path:     "/",
 		HttpOnly: true,                                         // Prevents client-side JS access
 		Secure:   config.GetServerConfigFunc().APPENV != "dev", // true in prod (SET APP_ENV=prod)
